@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>SIT Staff Directory</title>
+
+<!-- PWA Meta Tags -->
+<link rel="manifest" href="manifest.json"/>
+<meta name="theme-color" content="#0EA5E9"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<meta name="apple-mobile-web-app-title" content="SIT Directory"/>
+<meta name="description" content="Siddaganga Institute of Technology Staff Directory"/>
+
+<!-- Apple Touch Icons (inline SVG-based PNG via canvas won't work, using placeholder data URIs) -->
+<link rel="apple-touch-icon" href="icon-192.png"/>
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Segoe UI',sans-serif;background:#f0f4f8;color:#1a202c;}
+
+/* ====== INSTALL BANNER ====== */
+#installBanner{
+  display:none;
+  position:relative;
+  background:linear-gradient(135deg,#fff7ed,#fef3c7);
+  border:2px solid #f59e0b;
+  border-radius:14px;
+  padding:14px 16px;
+  margin-bottom:18px;
+  animation:bannerIn .4s ease;
+}
+#installBanner.show{display:block;}
+@keyframes bannerIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+.banner-top{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.banner-icon{width:40px;height:40px;background:linear-gradient(135deg,#0EA5E9,#14B8A6);
+  border-radius:10px;display:flex;align-items:center;justify-content:center;
+  color:#fff;font-size:16px;font-weight:700;flex-shrink:0;}
+.banner-text{flex:1;}
+.banner-text strong{display:block;font-size:14px;color:#92400e;margin-bottom:2px;}
+.banner-text span{font-size:12px;color:#b45309;}
+.banner-close{background:none;border:none;font-size:18px;color:#b45309;cursor:pointer;
+  padding:2px 6px;border-radius:4px;line-height:1;}
+.banner-close:hover{background:rgba(0,0,0,.07);}
+.banner-btns{display:flex;gap:8px;}
+.btn-install{flex:1;padding:10px;background:linear-gradient(135deg,#f59e0b,#d97706);
+  color:#fff;border:none;border-radius:9px;font-size:14px;font-weight:700;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;
+  box-shadow:0 3px 10px rgba(245,158,11,.4);transition:.15s;}
+.btn-install:active{transform:scale(.97);}
+.btn-install svg{width:16px;height:16px;}
+.btn-later{padding:10px 14px;background:transparent;border:1.5px solid #d97706;
+  color:#d97706;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;transition:.15s;}
+.btn-later:hover{background:rgba(217,119,6,.08);}
+
+/* iOS instruction strip */
+#iosHint{
+  display:none;
+  background:#e0f2fe;border:1.5px solid #7dd3fc;border-radius:10px;
+  padding:10px 12px;margin-bottom:16px;font-size:12px;color:#0369a1;
+  line-height:1.6;text-align:center;
+}
+#iosHint.show{display:block;}
+
+/* ====== LOGIN ====== */
+.login-page{min-height:100vh;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,#0EA5E9,#14B8A6);padding:16px;}
+.login-card{background:#fff;border-radius:20px;padding:36px 28px;width:100%;max-width:380px;
+  box-shadow:0 20px 60px rgba(0,0,0,.25);}
+.login-logo{width:72px;height:72px;background:linear-gradient(135deg,#0EA5E9,#14B8A6);
+  border-radius:50%;display:flex;align-items:center;justify-content:center;
+  margin:0 auto 20px;font-size:26px;font-weight:700;color:#fff;
+  box-shadow:0 6px 18px rgba(14,165,233,.4);}
+.login-card h2{text-align:center;font-size:24px;margin-bottom:6px;color:#1a202c;}
+.login-card .sub{text-align:center;color:#6b7280;font-size:13px;margin-bottom:28px;}
+.field{margin-bottom:18px;}
+.field label{display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:6px;}
+.field input{width:100%;padding:13px 14px;border:2px solid #e5e7eb;border-radius:10px;
+  font-size:16px;transition:.2s;-webkit-appearance:none;}
+.field input:focus{outline:none;border-color:#0EA5E9;box-shadow:0 0 0 3px rgba(14,165,233,.15);}
+.login-btn{width:100%;padding:14px;background:linear-gradient(135deg,#0EA5E9,#14B8A6);
+  color:#fff;border:none;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;
+  box-shadow:0 4px 14px rgba(14,165,233,.4);transition:.2s;}
+.login-btn:active{transform:scale(.98);}
+.err{background:#fef2f2;color:#b91c1c;padding:12px;border-radius:8px;
+  font-size:13px;border-left:4px solid #ef4444;margin-bottom:16px;display:none;}
+.err.show{display:block;}
+
+/* ====== APP SHELL ====== */
+#app{display:none;min-height:100vh;flex-direction:column;}
+#app.visible{display:flex;}
+
+/* ====== HEADER ====== */
+.hdr{background:linear-gradient(135deg,#0EA5E9,#14B8A6);padding:0 16px;
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:200;box-shadow:0 2px 8px rgba(0,0,0,.2);
+  min-height:56px;flex-shrink:0;}
+.hdr-left{display:flex;align-items:center;gap:10px;}
+.hdr-logo{width:38px;height:38px;background:#fff;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-weight:700;font-size:13px;color:#0EA5E9;flex-shrink:0;}
+.hdr-title{color:#fff;}
+.hdr-title h1{font-size:16px;font-weight:700;line-height:1.2;}
+.hdr-title p{font-size:10px;opacity:.85;}
+.hdr-right{display:flex;align-items:center;gap:6px;flex-wrap:nowrap;}
+.badge{background:rgba(255,255,255,.2);color:#fff;padding:4px 10px;
+  border-radius:16px;font-size:11px;font-weight:600;white-space:nowrap;}
+.nbtn{padding:6px 12px;border-radius:7px;font-size:12px;font-weight:600;
+  cursor:pointer;border:none;transition:.15s;white-space:nowrap;}
+.nbtn-on{background:#fff;color:#0EA5E9;}
+.nbtn-off{background:transparent;color:#fff;border:1.5px solid rgba(255,255,255,.6);}
+.nbtn-off:active,.nbtn-on:active{opacity:.8;}
+
+/* ====== CONTENT ====== */
+.content{flex:1;padding:16px 14px;max-width:1200px;margin:0 auto;width:100%;}
+
+/* ====== STATS ====== */
+.stats{background:linear-gradient(135deg,#0EA5E9,#14B8A6);border-radius:14px;
+  padding:16px 20px;margin-bottom:16px;display:flex;gap:20px;justify-content:center;}
+.stat{text-align:center;color:#fff;}
+.stat-n{font-size:28px;font-weight:700;}
+.stat-l{font-size:11px;opacity:.9;}
+
+/* ====== SEARCH ====== */
+.search-bar{display:flex;gap:8px;margin-bottom:16px;}
+.search-wrap{flex:1;position:relative;}
+.s-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);
+  width:16px;height:16px;color:#9ca3af;pointer-events:none;}
+.s-inp{width:100%;padding:11px 10px 11px 34px;border:2px solid #e2e8f0;
+  border-radius:10px;font-size:14px;background:#fff;
+  -webkit-appearance:none;transition:.2s;}
+.s-inp:focus{outline:none;border-color:#0EA5E9;}
+.d-sel{padding:11px 12px;border:2px solid #e2e8f0;border-radius:10px;
+  font-size:14px;background:#fff;min-width:140px;cursor:pointer;
+  -webkit-appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 10px center;padding-right:28px;}
+.d-sel:focus{outline:none;border-color:#0EA5E9;}
+
+/* ====== GRID ====== */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;}
+
+/* ====== CARD ====== */
+.card{background:#fff;border-radius:14px;padding:18px;
+  border:1px solid #e8edf2;box-shadow:0 1px 4px rgba(0,0,0,.06);
+  display:flex;flex-direction:column;gap:0;transition:.2s;min-height:200px;}
+.card:hover{box-shadow:0 6px 20px rgba(14,165,233,.14);transform:translateY(-2px);}
+.card-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;}
+.av{width:48px;height:48px;border-radius:50%;flex-shrink:0;
+  background:linear-gradient(135deg,#0EA5E9,#14B8A6);
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;font-size:18px;font-weight:700;
+  box-shadow:0 3px 8px rgba(14,165,233,.3);}
+.edit-btn{padding:5px 11px;background:linear-gradient(135deg,#0EA5E9,#14B8A6);
+  color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;
+  cursor:pointer;white-space:nowrap;transition:.15s;}
+.edit-btn:hover{opacity:.85;}
+.edit-btn:disabled{opacity:0;pointer-events:none;width:0;padding:0;overflow:hidden;}
+.c-name{font-size:15px;font-weight:700;color:#1a202c;line-height:1.3;margin-bottom:3px;}
+.c-desig{font-size:12px;font-weight:600;color:#0EA5E9;margin-bottom:2px;}
+.c-dept{font-size:11px;color:#9ca3af;margin-bottom:14px;}
+.c-info{background:#f8fafc;border-radius:8px;padding:12px 14px;margin-bottom:14px;display:flex;flex-direction:column;gap:8px;}
+.c-row{display:flex;align-items:center;gap:8px;font-size:13px;color:#9ca3af;overflow:hidden;width:100%;}
+.c-row.has{color:#374151;}
+.c-row svg{width:14px;height:14px;flex-shrink:0;}
+.c-row a{color:inherit;text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.c-row a:hover{text-decoration:underline;}
+.c-acts{display:flex;justify-content:space-around;padding-top:10px;
+  border-top:1px solid #f0f0f0;}
+.aib{width:34px;height:34px;border-radius:50%;border:none;background:#f4f6f8;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.15s;}
+.aib:hover{background:#e8ecf0;transform:scale(1.1);}
+.aib:disabled{opacity:.3;pointer-events:none;}
+.aib svg{width:16px;height:16px;}
+.aib.call{color:#0EA5E9;}.aib.wa{color:#14B8A6;}.aib.mail{color:#0EA5E9;}.aib.share{color:#8b5cf6;}
+
+/* ====== MODAL ====== */
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);
+  z-index:500;align-items:center;justify-content:center;padding:16px;}
+.modal.open{display:flex;}
+.modal-box{background:#fff;border-radius:16px;padding:24px;width:100%;max-width:440px;
+  max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3);}
+.modal-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;}
+.modal-hd h3{font-size:18px;font-weight:700;}
+.modal-x{background:none;border:none;font-size:24px;color:#6b7280;cursor:pointer;
+  width:30px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:6px;}
+.modal-x:hover{background:#f3f4f6;}
+.mfield{margin-bottom:13px;}
+.mfield label{display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:4px;}
+.mfield input,.mfield select{width:100%;padding:10px 12px;border:2px solid #e5e7eb;
+  border-radius:8px;font-size:14px;-webkit-appearance:none;}
+.mfield input:focus,.mfield select:focus{outline:none;border-color:#0EA5E9;}
+.m-btns{display:flex;gap:8px;margin-top:16px;}
+.mbtn-c{flex:1;padding:10px;border:2px solid #e5e7eb;background:#fff;
+  color:#374151;border-radius:8px;font-size:14px;cursor:pointer;}
+.mbtn-c:hover{background:#f3f4f6;}
+.mbtn-s{flex:1;padding:10px;border:none;
+  background:linear-gradient(135deg,#0EA5E9,#14B8A6);
+  color:#fff;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;}
+.mbtn-s:hover{opacity:.9;}
+
+/* ====== TOAST ====== */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);
+  background:#1a202c;color:#fff;padding:11px 20px;border-radius:10px;
+  font-size:13px;z-index:999;transition:.3s;pointer-events:none;}
+.toast.show{transform:translateX(-50%) translateY(0);}
+
+/* ====== ABOUT ====== */
+.about-wrap{max-width:700px;margin:0 auto;}
+.acard{background:#fff;border-radius:14px;padding:28px;margin-bottom:14px;
+  border:1px solid #e8edf2;box-shadow:0 1px 4px rgba(0,0,0,.06);}
+.acard h2{font-size:22px;font-weight:700;background:linear-gradient(135deg,#0EA5E9,#14B8A6);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:14px;}
+.acard h3{font-size:16px;font-weight:700;color:#667eea;margin:18px 0 10px;}
+.acard p{color:#4b5563;line-height:1.7;margin-bottom:10px;font-size:14px;}
+.acard strong{color:#0EA5E9;}
+.cc-person{display:flex;gap:14px;align-items:flex-start;}
+.cc-av{width:60px;height:60px;background:linear-gradient(135deg,#0EA5E9,#14B8A6);
+  border-radius:50%;display:flex;align-items:center;justify-content:center;
+  color:#fff;font-size:20px;font-weight:700;flex-shrink:0;}
+.cc-name{font-size:16px;font-weight:700;margin-bottom:3px;}
+.cc-role{font-size:12px;color:#14B8A6;margin-bottom:8px;}
+.cc-link{display:flex;align-items:center;gap:5px;font-size:13px;
+  color:#374151;padding:3px 0;}
+.cc-link a{color:inherit;text-decoration:none;}
+.cc-link a:hover{text-decoration:underline;}
+.cc-btns{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;}
+.cc-btns a{padding:8px 16px;border-radius:8px;text-decoration:none;
+  font-size:13px;font-weight:600;transition:.15s;}
+.b-call{background:#0EA5E9;color:#fff;}.b-call:hover{background:#0284C7;}
+.b-wa{background:#14B8A6;color:#fff;}.b-wa:hover{background:#0D9488;}
+.b-em{background:#0EA5E9;color:#fff;}.b-em:hover{background:#0284C7;}
+
+.empty{text-align:center;padding:48px 16px;color:#9ca3af;grid-column:1/-1;}
+.empty svg{width:48px;height:48px;margin-bottom:8px;opacity:.4;}
+.hidden{display:none!important;}
+
+/* ====== MOBILE RESPONSIVE ====== */
+@media(max-width:640px){
+  .grid{grid-template-columns:1fr;gap:12px;}
+  .content{padding:12px 10px;}
+  .stats{padding:12px 16px;gap:16px;margin-bottom:12px;border-radius:10px;}
+  .stat-n{font-size:22px;}
+  .stat-l{font-size:10px;}
+  .search-bar{flex-direction:column;gap:6px;margin-bottom:12px;}
+  .d-sel{min-width:unset;width:100%;}
+  .hdr{padding:0 10px;min-height:50px;}
+  .hdr-logo{width:34px;height:34px;font-size:12px;}
+  .hdr-title h1{font-size:14px;}
+  .hdr-title p{display:none;}
+  .badge{display:none;}
+  .nbtn{padding:5px 9px;font-size:11px;}
+  .card{padding:18px;border-radius:12px;min-height:200px;}
+  .av{width:52px;height:52px;font-size:18px;}
+  .edit-btn{font-size:11px;padding:6px 12px;}
+  .c-name{font-size:17px;font-weight:700;}
+  .c-desig{font-size:13px;font-weight:600;}
+  .c-dept{font-size:11px;margin-bottom:14px;}
+  .c-info{padding:14px 16px;margin-bottom:14px;gap:10px;}
+  .c-row{font-size:14px;gap:10px;min-height:28px;}
+  .c-row svg{width:16px;height:16px;}
+  .aib{width:44px;height:44px;border-radius:12px;}
+  .aib svg{width:20px;height:20px;}
+  .modal{padding:10px;}
+  .modal-box{padding:18px 14px;border-radius:12px;}
+}
+
+@media(max-width:380px){
+  .grid{grid-template-columns:1fr;gap:10px;}
+  .card{padding:16px;min-height:200px;}
+  .c-info{padding:12px 14px;margin-bottom:14px;gap:8px;}
+  .c-row{font-size:13px;gap:8px;}
+  .c-row svg{width:14px;height:14px;}
+  .aib{width:40px;height:40px;}
+  .aib svg{width:18px;height:18px;}
+  .hdr-right .nbtn:not(.nbtn-on){display:none;}
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN PAGE -->
+<div id="loginPage" class="login-page">
+  <div class="login-card">
+    <div class="login-logo">SIT</div>
+    <h2>Staff Directory</h2>
+    <p class="sub">Enter your registered mobile number to sign in</p>
+
+    <!-- ★ PWA INSTALL BANNER (shown automatically) ★ -->
+    <div id="installBanner">
+      <div class="banner-top">
+        <div class="banner-icon">SIT</div>
+        <div class="banner-text">
+          <strong>📲 Install App on your device</strong>
+          <span>Works offline • No app store needed</span>
+        </div>
+        <button class="banner-close" onclick="dismissBanner()" title="Dismiss">×</button>
+      </div>
+      <div class="banner-btns">
+        <button class="btn-install" id="installBtn" onclick="triggerInstall()">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Install SIT Directory
+        </button>
+        <button class="btn-later" onclick="dismissBanner()">Later</button>
+      </div>
+    </div>
+
+    <!-- iOS specific hint -->
+    <div id="iosHint">
+      📲 To install: tap the <strong>Share</strong> button (⎙) in Safari, then choose <strong>"Add to Home Screen"</strong>
+    </div>
+
+    <div class="err" id="loginErr">⚠️ Contact not found. Please enter your registered mobile number.</div>
+    <form id="loginForm">
+      <div class="field">
+        <label for="phoneInput">Mobile Number</label>
+        <input type="tel" id="phoneInput" placeholder="e.g. 9449852695" maxlength="10" inputmode="numeric" autocomplete="tel" required/>
+      </div>
+      <button type="submit" class="login-btn">Sign In →</button>
+    </form>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app">
+  <!-- Header -->
+  <header class="hdr">
+    <div class="hdr-left">
+      <div class="hdr-logo">SIT</div>
+      <div class="hdr-title">
+        <h1>Staff Directory</h1>
+        <p>Siddaganga Institute of Technology</p>
+      </div>
+    </div>
+    <div class="hdr-right">
+      <span class="badge" id="userBadge">👤</span>
+      <button class="nbtn nbtn-on" id="navDir">Directory</button>
+      <button class="nbtn nbtn-off" id="navAbout">About</button>
+      <button class="nbtn nbtn-off" onclick="doLogout()">Logout</button>
+    </div>
+  </header>
+
+  <!-- DIRECTORY -->
+  <main id="dirPage" class="content">
+    <div class="stats">
+      <div class="stat"><div class="stat-n" id="showCount">0</div><div class="stat-l">Showing</div></div>
+      <div class="stat"><div class="stat-n" id="totalCount">0</div><div class="stat-l">Total Staff</div></div>
+    </div>
+    <div class="search-bar">
+      <div class="search-wrap">
+        <svg class="s-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <input class="s-inp" id="searchInp" type="search" placeholder="Search name, designation, department…"/>
+      </div>
+      <select class="d-sel" id="deptSel"><option value="">All Departments</option></select>
+    </div>
+    <div class="grid" id="grid"></div>
+  </main>
+
+  <!-- ABOUT -->
+  <main id="aboutPage" class="content hidden">
+    <div class="about-wrap">
+      <div class="acard">
+        <h2>Technomedia Software Solutions Pvt. Ltd.</h2>
+        <p>Technomedia Software Solutions Pvt. Ltd. is a technology-oriented organization committed to delivering innovative software solutions and fostering industry-ready talent through structured internship and training programs.</p>
+        <p>Under the leadership of <strong>Dr. Joydeep Roy Choudhury</strong>, the company actively collaborates with academic institutions to bridge the gap between theoretical knowledge and real-world application.</p>
+        <h3>Internship Program at SIT</h3>
+        <p>As part of the internship program conducted in association with Siddaganga Institute of Technology (SIT), Technomedia provides hands-on experience, real-time project exposure, and professional mentorship.</p>
+      </div>
+      <div class="acard">
+        <h3 style="margin-top:0">Contact for Internship &amp; Queries</h3>
+        <div class="cc-person">
+          <div class="cc-av">DR</div>
+          <div>
+            <div class="cc-name">Dr. Joydeep Roy Choudhury</div>
+            <div class="cc-role">Head – Technomedia Software Solutions Pvt. Ltd.</div>
+            <div class="cc-link">📞 <a href="tel:+919945044016">+91 99450 44016</a></div>
+            <div class="cc-link">✉️ <a href="mailto:iamjoydeep@gmail.com">iamjoydeep@gmail.com</a></div>
+            <div class="cc-btns">
+              <a href="tel:+919945044016" class="b-call">Call</a>
+              <a href="https://wa.me/919945044016" target="_blank" class="b-wa">WhatsApp</a>
+              <a href="mailto:iamjoydeep@gmail.com" class="b-em">Email</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+// ── PWA: SERVICE WORKER REGISTRATION ────────────────────────────
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
+
+// ── PWA: INSTALL PROMPT LOGIC ─────────────────────────────────
+let deferredPrompt = null;
+const installBanner = document.getElementById('installBanner');
+const iosHint       = document.getElementById('iosHint');
+
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+const isInStandaloneMode = window.matchMedia('(display-mode: standalone)').matches
+  || window.navigator.standalone === true;
+const dismissed = sessionStorage.getItem('installDismissed');
+
+// Android / Chrome: catch the beforeinstallprompt event
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  if (!isInStandaloneMode && !dismissed) {
+    installBanner.classList.add('show');
+  }
+});
+
+// iOS Safari: show manual hint
+if (isIOS && !isInStandaloneMode && !dismissed) {
+  iosHint.classList.add('show');
+}
+
+// Hide banner if already installed
+window.addEventListener('appinstalled', () => {
+  installBanner.classList.remove('show');
+  iosHint.classList.remove('show');
+  deferredPrompt = null;
+  showToast('✅ App installed successfully!');
+});
+
+function triggerInstall() {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then(choice => {
+    if (choice.outcome === 'accepted') {
+      installBanner.classList.remove('show');
+    }
+    deferredPrompt = null;
+  });
+}
+
+function dismissBanner() {
+  installBanner.classList.remove('show');
+  iosHint.classList.remove('show');
+  sessionStorage.setItem('installDismissed', '1');
+}
+
+// ── HIERARCHY ────────────────────────────────────────────────────
+const RANK = {
+  'C.E.O':1,'Director':2,'Principal':3,
+  'Professor':4,'Associate Professor':5,
+  'Asst.Professor':6,'Assistant Professor':6,
+  'Visiting Faculty':7,'Administrative Asst.':8,
+  'Assistant Placement Officer':9,'Asst. Placement Officer':9,
+  'Lab Instructor':10,'Foreman':11,'Data Manager/Prog.':12,
+  'Instructor':13,'Accounts Officer':14,'Suptd.':15,
+  'F.D.C.':16,'S.D.C.':17,'Sr.Typist':18,'Operator':19,
+  'Mechanic':20,'Driver':21,'Tech.Helper':22,
+  'Helper':23,'Peon':24,'Attender':25
+};
+
+function canEdit(me, target) {
+  if (!me || !target) return false;
+  if (me.id === target.id) return false;
+  const mR = RANK[me.designation] ?? 999;
+  const tR = RANK[target.designation] ?? 999;
+  return mR < tR;
+}
+
+const DESIG_LIST = [
+  'Accounts Officer','Administrative Asst.','Assistant Placement Officer',
+  'Associate Professor','Assistant Professor','Attender','C.E.O',
+  'Data Manager/Prog.','Director','Driver','F.D.C.','Foreman',
+  'Helper','Instructor','Lab Instructor','Mechanic','Operator','Peon',
+  'Principal','Professor','S.D.C.','Sr.Typist','Suptd.','Tech.Helper',
+  'Visiting Faculty'
+];
+
+// ── STAFF DATA ───────────────────────────────────────────────────
+const STAFF_DATA = [{"id":1,"name":"Mr.Amaresha","department":"Accounts Section","designation":"S.D.C.","email":"dummy@sit.ac.in","mobile":""},{"id":2,"name":"Ms.Anushruthi","department":"Accounts Section","designation":"S.D.C.","email":"anushruthi@sit.ac.in","mobile":"8861377386"},{"id":3,"name":"Mr.Darshan H B","department":"Accounts Section","designation":"F.D.C.","email":"darshanhb@sit.ac.in","mobile":"9591098901"},{"id":4,"name":"Mr.Dharmegowda S S","department":"Accounts Section","designation":"F.D.C.","email":"ssd@sit.ac.in","mobile":"9741722453"},{"id":5,"name":"Mr.Guruchannabasappa S","department":"Accounts Section","designation":"F.D.C.","email":"sgsit@sit.ac.in","mobile":"9741260608"},{"id":6,"name":"Mr.Karisiddappa","department":"Accounts Section","designation":"S.D.C.","email":"karisiddappa@sit.ac.in","mobile":"9482785533"},{"id":7,"name":"Mr.Mohan Kumar M A","department":"Accounts Section","designation":"F.D.C.","email":"mohanma@sit.ac.in","mobile":"9900908397"},{"id":8,"name":"Mr.Palaksha","department":"Accounts Section","designation":"Suptd.","email":"palaksha@sit.ac.in","mobile":"9449377696"},{"id":9,"name":"Mr.Sachidanandamurthy V S","department":"Accounts Section","designation":"F.D.C.","email":"vssmurthy@sit.ac.in","mobile":"8050088898"},{"id":10,"name":"Mr.Sateesh Kumar C","department":"Accounts Section","designation":"Accounts Officer","email":"c_sateeshkumar@sit.ac.in","mobile":"9945454056"},{"id":11,"name":"Ms.Shamala M E","department":"Accounts Section","designation":"F.D.C.","email":"shamala@sit.ac.in","mobile":"9916436949"},{"id":12,"name":"Mr.Umesh G","department":"Accounts Section","designation":"Tech.Helper","email":"gumesh@sit.ac.in","mobile":"9972979260"},{"id":13,"name":"Ms.Vidya S","department":"Accounts Section","designation":"S.D.C.","email":"vidyas@sit.ac.in","mobile":"9164926439"},{"id":14,"name":"Mr.Yathisha C","department":"Accounts Section","designation":"F.D.C.","email":"yathishchandru@sit.ac.in","mobile":"9945216694"},{"id":15,"name":"Mr.Ashok Kumar","department":"Administrative Office","designation":"Attender","email":"dummy@sit.ac.in","mobile":""},{"id":16,"name":"Mr.Banuprakash G N","department":"Administrative Office","designation":"F.D.C.","email":"gnb@sit.ac.in","mobile":"9901917924"},{"id":17,"name":"Mr.Basavannappa C B","department":"Administrative Office","designation":"Tech.Helper","email":"dummy@sit.ac.in","mobile":"9611776727"},{"id":18,"name":"Mr.Basavarajaiah B","department":"Administrative Office","designation":"Suptd.","email":"basavarajaiahb@sit.ac.in","mobile":"8105641641"},{"id":19,"name":"Mr.Chandrashekar R","department":"Administrative Office","designation":"S.D.C.","email":"clr@sit.ac.in","mobile":"9739966720"},{"id":20,"name":"Dr.Channabasappa M N","department":"Administrative Office","designation":"Director","email":"director@sit.ac.in","mobile":""},{"id":21,"name":"Mr.Channabasavaiah G R","department":"Administrative Office","designation":"Attender","email":"dummy@sit.ac.in","mobile":""},{"id":22,"name":"Mr.Devaraja K M","department":"Administrative Office","designation":"Attender","email":"devu@sit.ac.in","mobile":"9964749849"},{"id":23,"name":"Mr.Dinakar B S","department":"Administrative Office","designation":"Instructor","email":"dinakar@sit.ac.in","mobile":"9986860479"},{"id":24,"name":"Dr.Dinesh S V","department":"Administrative Office","designation":"Principal","email":"dinesh@sit.ac.in","mobile":"9449852695"},{"id":25,"name":"Mr.Harish Babu C S","department":"Administrative Office","designation":"Attender","email":"harishbabucs@sit.ac.in","mobile":"9916619216"},{"id":26,"name":"Mr.Harish Kumar N","department":"Administrative Office","designation":"Attender","email":"harishkumarn@sit.ac.in","mobile":"9620666198"},{"id":27,"name":"Mr.Kumar R","department":"Administrative Office","designation":"Driver","email":"dummy@sit.ac.in","mobile":"9972466937"},{"id":28,"name":"Mr.Kumaraswamy R","department":"Administrative Office","designation":"S.D.C.","email":"kumaraswamyr@sit.ac.in","mobile":"9343399146"},{"id":29,"name":"Mr.Lokesh H M","department":"Administrative Office","designation":"Operator","email":"hmlokesh@sit.ac.in","mobile":"9844901484"},{"id":30,"name":"Mr.Madhu","department":"Administrative Office","designation":"Sr.Typist","email":"madhu@sit.ac.in","mobile":"9743323252"},{"id":31,"name":"Mr.Mahadevaswamy V","department":"Administrative Office","designation":"Attender","email":"mahadevaswamyv@sit.ac.in","mobile":""},{"id":32,"name":"Mr.Mahesh H C","department":"Administrative Office","designation":"Tech.Helper","email":"dummy@sit.ac.in","mobile":"8861167092"},{"id":33,"name":"Mr.Mallikarjuna Prasanna S","department":"Administrative Office","designation":"Attender","email":"dummy@sit.ac.in","mobile":""},{"id":34,"name":"Mr.Mallikarjunaiah N S","department":"Administrative Office","designation":"Attender","email":"dummy@sit.ac.in","mobile":"7760890029"},{"id":35,"name":"Ms.Mamatha R","department":"Administrative Office","designation":"S.D.C.","email":"mamathaneha@sit.ac.in","mobile":""},{"id":36,"name":"Mr.Mohan Kumar R C","department":"Administrative Office","designation":"S.D.C.","email":"rcmohankumar78@gmail.com","mobile":"9916913023"},{"id":37,"name":"Mr.Mohan S","department":"Administrative Office","designation":"S.D.C.","email":"mohans@sit.ac.in","mobile":"8970910032"},{"id":38,"name":"Mr.Nagaraju V","department":"Administrative Office","designation":"Tech.Helper","email":"dummy@sit.ac.in","mobile":""},{"id":39,"name":"Mr.Parameshwaraiah V","department":"Administrative Office","designation":"Mechanic","email":"vparameshwaraiah@sit.ac.in","mobile":"9449913032"},{"id":40,"name":"Mr.Parameshwarappa S M","department":"Administrative Office","designation":"Mechanic","email":"dummy@sit.ac.in","mobile":""},{"id":41,"name":"Mr.Prabhakar G","department":"Administrative Office","designation":"F.D.C.","email":"prabhakar@sit.ac.in","mobile":"9986075206"},{"id":42,"name":"Ms.Prema S","department":"Administrative Office","designation":"Data Manager/Prog.","email":"sp@sit.ac.in","mobile":"8971748073"},{"id":43,"name":"Mr.Raju A","department":"Administrative Office","designation":"Mechanic","email":"rajua@sit.ac.in","mobile":"9448432335"},{"id":44,"name":"Mr.Renuka P","department":"Administrative Office","designation":"Driver","email":"","mobile":""},{"id":45,"name":"Mr.Revanasiddappa Gurusangappa T H","department":"Administrative Office","designation":"Attender","email":"rgth@sit.ac.in","mobile":""},{"id":46,"name":"Mr.Rudresh S L","department":"Administrative Office","designation":"F.D.C.","email":"dummy@sit.ac.in","mobile":"9844769086"},{"id":47,"name":"Mr.Rudresha S B","department":"Administrative Office","designation":"Attender","email":"dummy@sit.ac.in","mobile":"9945735771"},{"id":48,"name":"Mr.Sanjeev Kumar D L","department":"Administrative Office","designation":"Tech.Helper","email":"dls@sit.ac.in","mobile":"9964429212"},{"id":49,"name":"Mr.Shashikumar B G","department":"Administrative Office","designation":"Tech.Helper","email":"bgshashikumar@sit.ac.in","mobile":""},{"id":50,"name":"Mr.Shivakumar T G","department":"Administrative Office","designation":"S.D.C.","email":"shivakumartg@sit.ac.in","mobile":"9980040810"},{"id":51,"name":"Dr.Shivakumaraiah","department":"Administrative Office","designation":"C.E.O","email":"ceo@sit.ac.in","mobile":"9663367140"},{"id":52,"name":"Mr.Shivamurthy H G","department":"Administrative Office","designation":"S.D.C.","email":"shivamurthy@sit.ac.in","mobile":"9535477425"},{"id":53,"name":"Mr.Shivanna B S","department":"Administrative Office","designation":"Helper","email":"shivannabs@sit.ac.in","mobile":"9901091966"},{"id":54,"name":"Mr.Shobhananda K M","department":"Administrative Office","designation":"Attender","email":"dummy@sit.ac.in","mobile":"7259130234"},{"id":55,"name":"Mr.Siddalinga Devaru","department":"Administrative Office","designation":"Attender","email":"siddalingadevarunm@gmail.com","mobile":"9844395436"},{"id":56,"name":"Mr.Umashankar C L","department":"Administrative Office","designation":"Peon","email":"umashankarcl@sit.ac.in","mobile":"9740347551"},{"id":57,"name":"Ms.Vinutha K N","department":"Administrative Office","designation":"Administrative Asst.","email":"vinuthakn@sit.ac.in","mobile":"9743273070"},{"id":58,"name":"Mr.Akshay Upadhyaya","department":"Architecture","designation":"Visiting Faculty","email":"archakshay@gmail.com","mobile":"9901274145"},{"id":59,"name":"Ms.Asha N","department":"Architecture","designation":"Associate Professor","email":"ar.asha@sit.ac.in","mobile":"9986664966"},{"id":60,"name":"Mr.Basavaraju K C","department":"Architecture","designation":"Tech.Helper","email":"kcb@sit.ac.in","mobile":"9739620084"},{"id":61,"name":"Ms.Bhoomika U","department":"Architecture","designation":"Asst.Professor","email":"bhoomikau@sit.ac.in","mobile":"9902829404"},{"id":62,"name":"Ms.Chandrika Salimath S M","department":"Architecture","designation":"Asst.Professor","email":"chandrikasm@sit.ac.in","mobile":"9845871129"},{"id":63,"name":"Mr.Gautam N","department":"Architecture","designation":"Asst.Professor","email":"dummy@sit.ac.in","mobile":"9538402926"},{"id":64,"name":"Mr.Karthik P","department":"Architecture","designation":"Asst.Professor","email":"dummy@sit.ac.in","mobile":"9886135951"},{"id":65,"name":"Ms.Madhumathi P","department":"Architecture","designation":"Associate Professor","email":"madhumathi@sit.ac.in","mobile":"9916071151"},{"id":66,"name":"Mr.Manjunath C N","department":"Architecture","designation":"Professor","email":"dummy@sit.ac.in","mobile":""},{"id":67,"name":"Mr.Mohamed Inam Ulla Khan","department":"Architecture","designation":"Asst.Professor","email":"inam8105@gmail.com","mobile":"8105221190"},{"id":68,"name":"Dr.Naveen Kishore Khambadkone","department":"Architecture","designation":"Associate Professor","email":"naveenkishore@sit.ac.in","mobile":"9424484778"},{"id":69,"name":"Mr.Pradeepkumar Kallur","department":"Architecture","designation":"Visiting Faculty","email":"pradeepkumarkallur@sit.ac.in","mobile":"9900081006"},{"id":70,"name":"Dr.Sagar T S","department":"Architecture","designation":"Associate Professor","email":"sagarts@sit.ac.in","mobile":"9342717740"},{"id":71,"name":"Ms.Sahana Prakash T","department":"Architecture","designation":"Asst.Professor","email":"sahanaprakasht@sit.ac.in","mobile":"9611296279"},{"id":72,"name":"Mr.Siddeshgowda S","department":"Architecture","designation":"Asst.Professor","email":"siddu.art@sit.ac.in","mobile":"9886847193"},{"id":73,"name":"Mr.Thippesh T","department":"Architecture","designation":"Instructor","email":"thippesh_t@sit.ac.in","mobile":"9844292167"},{"id":74,"name":"Mr.Vijetha C P","department":"Architecture","designation":"Asst.Professor","email":"vijethacp@sit.ac.in","mobile":"9986752725"},{"id":75,"name":"Dr.Akhela Umapathi","department":"Bio-Technology","designation":"Asst.Professor","email":"akhela@sit.ac.in","mobile":"9538847045"},{"id":76,"name":"Dr.Anupama C","department":"Bio-Technology","designation":"Asst.Professor","email":"anupama83@sit.ac.in","mobile":""},{"id":77,"name":"Mr.Ashoka","department":"Bio-Technology","designation":"Attender","email":"ashoka@sit.ac.in","mobile":"9901016530"},{"id":78,"name":"Mr.Basavarajaiah P R","department":"Bio-Technology","designation":"Foreman","email":"prb@sit.ac.in","mobile":"9964016600"},{"id":79,"name":"Mr.Chandrashekara Murthy","department":"Bio-Technology","designation":"Attender","email":"chandrashekaramurthy@sit.ac.in","mobile":"8453359203"},{"id":80,"name":"Dr.Gowrishankar B S","department":"Bio-Technology","designation":"Professor","email":"bsgowri@sit.ac.in","mobile":"9844461940"},{"id":81,"name":"Dr.Prasanna D R","department":"Bio-Technology","designation":"Associate Professor","email":"adveirprasanna@sit.ac.in","mobile":"9902132693"},{"id":82,"name":"Dr.Roopa K B","department":"Bio-Technology","designation":"Asst.Professor","email":"roopakb@sit.ac.in","mobile":"9480306422"},{"id":83,"name":"Ms.Savitha S","department":"Bio-Technology","designation":"Mechanic","email":"savithas@sit.ac.in","mobile":"9886800253"},{"id":84,"name":"Ms.Varsha D Savanth","department":"Bio-Technology","designation":"Asst.Professor","email":"varshadsavanth@sit.ac.in","mobile":"9632294123"},{"id":85,"name":"Dr.Nirankarnath Mishra","department":"Center for Nanotechnology","designation":"Professor","email":"nirankar.mishra@sit.ac.in","mobile":""},{"id":86,"name":"Mr.Eswaraiah R","department":"Chemical Engineering","designation":"Tech.Helper","email":"re@sit.ac.in","mobile":""},{"id":87,"name":"Mr.Eswarappa H S","department":"Chemical Engineering","designation":"Attender","email":"eshwarappahs@sit.ac.in","mobile":"9844793620"},{"id":88,"name":"Dr.Harish Phattepur","department":"Chemical Engineering","designation":"Asst.Professor","email":"hdp@sit.ac.in","mobile":"9916125550"},{"id":89,"name":"Mr.Manjunath S P","department":"Chemical Engineering","designation":"Asst.Professor","email":"mannsp84@sit.ac.in","mobile":"9964584081"},{"id":90,"name":"Dr.Poornima G Hiremath","department":"Chemical Engineering","designation":"Associate Professor","email":"pgh@sit.ac.in","mobile":"8892660422"},{"id":91,"name":"Dr.Prakash Binnal","department":"Chemical Engineering","designation":"Asst.Professor","email":"pb@sit.ac.in","mobile":"9243961436"},{"id":92,"name":"Dr.Rajashekara S","department":"Chemical Engineering","designation":"Asst.Professor","email":"rs@sit.ac.in","mobile":"9742872266"},{"id":93,"name":"Mr.Ravishankar T R","department":"Chemical Engineering","designation":"Instructor","email":"ravi_gl@sit.ac.in","mobile":"9844282162"},{"id":94,"name":"Mr.Shadaksharamurthy K R","department":"Chemical Engineering","designation":"Associate Professor","email":"krsmurthy@sit.ac.in","mobile":"9844327238"},{"id":95,"name":"Mr.Shivanna R","department":"Chemical Engineering","designation":"Peon","email":"shivannar@sit.ac.in","mobile":"9945218747"},{"id":96,"name":"Dr.Sudhir H Ranganath","department":"Chemical Engineering","designation":"Associate Professor","email":"sudhirh@sit.ac.in","mobile":"9901699216"},{"id":97,"name":"Dr.Suma G R","department":"Chemical Engineering","designation":"Asst.Professor","email":"gr_suma@sit.ac.in","mobile":"9632251017"},{"id":98,"name":"Dr.Suman Pawar","department":"Chemical Engineering","designation":"Asst.Professor","email":"svp@sit.ac.in","mobile":"9880575855"},{"id":99,"name":"Dr.Anil Rao H N","department":"Chemistry","designation":"Asst.Professor","email":"anilraohn@sit.ac.in","mobile":"9740854398"},{"id":100,"name":"Dr.Lalithamba H S","department":"Chemistry","designation":"Professor","email":"hsl@sit.ac.in","mobile":"9008305654"},{"id":101,"name":"Dr.Nagaraj G","department":"Chemistry","designation":"Associate Professor","email":"nagarajugn@sit.ac.in","mobile":"9448808353"},{"id":102,"name":"Mr.Nataraja N P","department":"Chemistry","designation":"Attender","email":"npnataraju@sit.ac.in","mobile":"9980271378"},{"id":103,"name":"Dr.Raghu G K","department":"Chemistry","designation":"Asst.Professor","email":"raghugk@sit.ac.in","mobile":"9448448938"},{"id":104,"name":"Mr.Suresh M P","department":"Chemistry","designation":"Tech.Helper","email":"sureshsit@sit.ac.in","mobile":"9916969248"},{"id":105,"name":"Mr.Theerthakumar P S","department":"Chemistry","designation":"Peon","email":"thirthakumar@sit.ac.in","mobile":"9731329611"},{"id":106,"name":"Ms.Uma K","department":"Chemistry","designation":"Asst.Professor","email":"umak@sit.ac.in","mobile":"9886737680"},{"id":107,"name":"Mr.Virupakshaiah K B","department":"Chemistry","designation":"Lab Instructor","email":"virupakshaiahkb@sit.ac.in","mobile":"9844484516"},{"id":108,"name":"Mr.Ashwin K N","department":"Civil Engineering","designation":"Asst.Professor","email":"knashwin@sit.ac.in","mobile":"9743296296"},{"id":109,"name":"Mr.Dinesh L","department":"Civil Engineering","designation":"Tech.Helper","email":"dl@sit.ac.in","mobile":"9449362352"},{"id":110,"name":"Mr.Ganapati M Patil","department":"Civil Engineering","designation":"Asst.Professor","email":"ganapatipatil@sit.ac.in","mobile":"7901441160"},{"id":111,"name":"Dr.Harsha M M","department":"Civil Engineering","designation":"Asst.Professor","email":"harshamm@sit.ac.in","mobile":"7760048194"},{"id":112,"name":"Mr.Hemanth Kumar S L","department":"Civil Engineering","designation":"Tech.Helper","email":"slh@sit.ac.in","mobile":"9980649978"},{"id":113,"name":"Ms.Hemashree N C","department":"Civil Engineering","designation":"Instructor","email":"hemashreenc@sit.ac.in","mobile":"8747863735"},{"id":114,"name":"Dr.Mamatha K H","department":"Civil Engineering","designation":"Associate Professor","email":"mamathakh@sit.ac.in","mobile":"9844510710"},{"id":115,"name":"Dr.Muttana S Balreddy","department":"Civil Engineering","designation":"Associate Professor","email":"msb@sit.ac.in","mobile":"9986692622"},{"id":116,"name":"Dr.Nahushananda Chakravarthy H G","department":"Civil Engineering","designation":"Asst.Professor","email":"chakravarthyn@sit.ac.in","mobile":"7619193649"},{"id":117,"name":"Dr.Pavan Kumar Emani","department":"Civil Engineering","designation":"Professor","email":"pavankumar@sit.ac.in","mobile":"9690772484"},{"id":118,"name":"Ms.Rajalakshmi N S","department":"Civil Engineering","designation":"Instructor","email":"rajalakshmins@sit.ac.in","mobile":"9739851658"},{"id":119,"name":"Dr.Rajendra Prasad D S","department":"Civil Engineering","designation":"Professor","email":"dsrajendraprasad@sit.ac.in","mobile":""},{"id":120,"name":"Mr.Rakshith S","department":"Civil Engineering","designation":"Instructor","email":"rakshiths@sit.ac.in","mobile":"8073509528"},{"id":121,"name":"Dr.Roopa M","department":"Civil Engineering","designation":"Asst.Professor","email":"roopam@sit.ac.in","mobile":"8660599466"},{"id":122,"name":"Mr.Sharma H D","department":"Civil Engineering","designation":"Asst.Professor","email":"hds@sit.ac.in","mobile":"9343001522"},{"id":123,"name":"Mr.Shivakumaraswamy","department":"Civil Engineering","designation":"Attender","email":"shivakumara_swamy@sit.ac.in","mobile":"9164735759"},{"id":124,"name":"Mr.Siddalingaswamy G","department":"Civil Engineering","designation":"Tech.Helper","email":"sidda@sit.ac.in","mobile":"9449733840"},{"id":125,"name":"Dr.Siddesha H","department":"Civil Engineering","designation":"Associate Professor","email":"sh@sit.ac.in","mobile":"9740120265"},{"id":126,"name":"Mr.Somashekara R S","department":"Civil Engineering","designation":"Attender","email":"rss@sit.ac.in","mobile":"9036945634"},{"id":127,"name":"Dr.Sreedhara B M","department":"Civil Engineering","designation":"Asst.Professor","email":"sreedharabm@sit.ac.in","mobile":"9945498010"},{"id":128,"name":"Mr.Suresh K S","department":"Civil Engineering","designation":"Instructor","email":"suresh_ks@sit.ac.in","mobile":"9844095658"},{"id":129,"name":"Dr.Vinay H N","department":"Civil Engineering","designation":"Asst.Professor","email":"vinayhn@sit.ac.in","mobile":"9980709307"},{"id":130,"name":"Mr.Vishal R Khandagale","department":"Civil Engineering","designation":"Asst.Professor","email":"vishalrk@sit.ac.in","mobile":"9164328099"},{"id":131,"name":"Dr.Akshatha Y","department":"Computer Science & Engg.","designation":"Asst.Professor","email":"akshathay@sit.ac.in","mobile":"7411438641"},{"id":132,"name":"Dr.Ashwini B P","department":"Computer Science & Engg.","designation":"Asst.Professor","email":"ashvinibp@sit.ac.in","mobile":"9900567454"},{"id":133,"name":"Mr.Bettaswamy K R","department":"Computer Science & Engg.","designation":"Attender","email":"swamy@sit.ac.in","mobile":"9844731128"},{"id":134,"name":"Dr.Bharathi P T","department":"Computer Science & Engg.","designation":"Asst.Professor","email":"bharathi_pt@sit.ac.in","mobile":"9448845709"},{"id":135,"name":"Dr.Bhargavi K","department":"Computer Science & Engg.","designation":"Associate Professor","email":"bhargavik@sit.ac.in","mobile":"9886280931"},{"id":136,"name":"Ms.Chandraprabha K S","department":"Computer Science & Engg.","designation":"Asst.Professor","email":"chandraprabhaks@sit.ac.in","mobile":"9916788551"},{"id":137,"name":"Mr.Guruprasad E","department":"Computer Science & Engg.","designation":"Asst.Professor","email":"dummy@sit.ac.in","mobile":"9844418446"},{"id":138,"name":"Mr.Gururaj S P","department":"Computer Science & Engg.","designation":"Asst.Professor","email":"gururajsp@sit.ac.in","mobile":"8441287647"},{"id":139,"name":"Mr.Kallinatha H D","department":"Computer Science & Engg.","designation":"Asst.Professor","email":"hdk@sit.ac.in","mobile":"9986295070"},{"id":140,"name":"Ms.Kavitha M","department":"Computer Science & Engg.","designation":"Asst.Professor","email":"kavitham@sit.ac.in","mobile":"9611449444"},{"id":141,"name":"Dr.Kiran Kumar T M","department":"Computer Science & Engg.","designation":"Asst.Professor","email":"tmkiran@sit.ac.in","mobile":"9844379612"},{"id":142,"name":"Mr.Krishna Mohan A V","department":"Computer Science & Engg.","designation":"Asst.Professor","email":"krishnamohan_av@sit.ac.in","mobile":"9980577442"},{"id":143,"name":"Mr.Kumar M","department":"Computer Science & Engg.","designation":"Attender","email":"mkumar@sit.ac.in","mobile":"9449306676"},{"id":144,"name":"Ms.Lasya R","department":"Computer Science & Engg.","designation":"Asst.Professor","email":"lasyar@sit.ac.in","mobile":"9513351456"},{"id":145,"name":"Mr.Mahesh S","department":"Computer Science & Engg.","designation":"Operator","email":"mahesh@sit.ac.in","mobile":"9343081884"},{"id":146,"name":"Ms.Manasa S","department":"Computer Science & Engg.","designation":"Instructor","email":"manasas@sit.ac.in","mobile":"7349126545"},{"id":147,"name":"Dr.Manjunath K G","department":"Computer Science & Engg.","designation":"Asst.Professor","email":"kgmanjunath@sit.ac.in","mobile":"9739063124"},{"id":148,"name":"Mr.Manjunath Mahadevappa Patil","department":"Computer Science & Engg.","designation":"Instructor","email":"manjunathmp@sit.ac.in","mobile":"7411694775"},{"id":149,"name":"Ms.Navyashree S","department":"Computer Science & Engg.","designation":"Asst.Professor","email":"navyashrees@sit.ac.in","mobile":"8951789329"},{"id":150,"name":"Dr.Nijagunarya Y S","department":"Computer Science & Engg.","designation":"Professor","email":"nijagunarya@sit.ac.in","mobile":"9844453688"},{"id":151,"name":"Dr.Nirmala M B","department":"Computer Science & Engg.","designation":"Associate Professor","email":"mbnirmala@sit.ac.in","mobile":"9739302826"},{"id":152,"name":"Ms.Nousheen Taj","department":"Computer Science & Engg.","designation":"Asst.Professor","email":"noush786@sit.ac.in","mobile":"9986244311"},{"id":153,"name":"Dr.Poornima A S","department":"Computer Science & Engg.","designation":"Professor","email":"aspoornima@sit.ac.in","mobile":"9480408453"},{"id":154,"name":"Dr.Prabodh C P","department":"Computer Science & Engg.","designation":"Asst.Professor","email":"prabodh@sit.ac.in","mobile":"8151894110"},{"id":155,"name":"Mr.Prakash Babu T M","department":"Computer Science & Engg.","designation":"Tech.Helper","email":"prakashtm@sit.ac.in","mobile":"9740773706"},{"id":156,"name":"Dr.Pramod T C","department":"Computer Science & Engg.","designation":"Associate Professor","email":"pramodtc@sit.ac.in","mobile":""},{"id":157,"name":"Mr.Prasanna Kumar K R","department":"Computer Science & Engg.","designation":"Asst.Professor","email":"prasanna.kghatta@sit.ac.in","mobile":"9880771132"},{"id":158,"name":"Mr.Raghavendra M","department":"Computer Science & Engg.","designation":"Asst.Professor","email":"rag@sit.ac.in","mobile":""},{"id":159,"name":"Mr.Raghu G C","department":"Computer Science & Engg.","designation":"Attender","email":"raghugc@sit.ac.in","mobile":"9844675740"},{"id":160,"name":"Mr.Rajendra T R","department":"Computer Science & Engg.","designation":"Instructor","email":"trr@sit.ac.in","mobile":"8453539731"},{"id":161,"name":"Ms.Rathan K J","department":"Computer Science & Engg.","designation":"Instructor","email":"kjrathan@sit.ac.in","mobile":"9663504020"},{"id":162,"name":"Mr.Ravi V","department":"Computer Science & Engg.","designation":"Asst.Professor","email":"ravi@sit.ac.in","mobile":"9886277460"},{"id":163,"name":"Mr.Renukaradya R L","department":"Computer Science & Engg.","designation":"Instructor","email":"renukaradya@sit.ac.in","mobile":"7090612747"},{"id":164,"name":"Ms.Sahana Lokesh R","department":"Computer Science & Engg.","designation":"Asst.Professor","email":"sahanalr@sit.ac.in","mobile":"9901178020"},{"id":165,"name":"Mr.Sathish R","department":"Computer Science & Engg.","designation":"Professor","email":"dummy@sit.ac.in","mobile":"9980901040"},{"id":166,"name":"Mr.Satish N G","department":"Computer Science & Engg.","designation":"Instructor","email":"satish@sit.ac.in","mobile":"9844002114"},{"id":167,"name":"Dr.Savithramma R M","department":"Computer Science & Engg.","designation":"Asst.Professor","email":"savirmrl@sit.ac.in","mobile":"9964628513"},{"id":168,"name":"Mr.Shanthakumar A H","department":"Computer Science & Engg.","designation":"Asst.Professor","email":"shanthakumara@sit.ac.in","mobile":"9886589750"},{"id":169,"name":"Ms.Sheela S","department":"Computer Science & Engg.","designation":"Asst.Professor","email":"sheelas@sit.ac.in","mobile":"9591055888"},{"id":170,"name":"Ms.Shilpa S P","department":"Computer Science & Engg.","designation":"Asst.Professor","email":"shilpasp@sit.ac.in","mobile":"7483164188"},{"id":171,"name":"Mr.Shivakumar S C","department":"Computer Science & Engg.","designation":"Operator","email":"shivakumar@sit.ac.in","mobile":"9844757446"},{"id":172,"name":"Dr.Shobha K","department":"Computer Science & Engg.","designation":"Asst.Professor","email":"shobhak@sit.ac.in","mobile":""},{"id":173,"name":"Dr.Shreenath K N","department":"Computer Science & Engg.","designation":"Associate Professor","email":"shreenathk_n@sit.ac.in","mobile":"9844321171"},{"id":174,"name":"Ms.Shruthi K","department":"Computer Science & Engg.","designation":"Asst.Professor","email":"shruthik@sit.ac.in","mobile":"8884766603"},{"id":175,"name":"Ms.Shwetha A N","department":"Computer Science & Engg.","designation":"Asst.Professor","email":"shwethaan@sit.ac.in","mobile":"8746982111"},{"id":176,"name":"Ms.Sowmya M N","department":"Computer Science & Engg.","designation":"Asst.Professor","email":"sowmyamn@sit.ac.in","mobile":"9986617496"},{"id":177,"name":"Dr.Srinivasa K","department":"Computer Science & Engg.","designation":"Asst.Professor","email":"srinivasa@sit.ac.in","mobile":"9845399083"},{"id":178,"name":"Dr.Sumalatha Aradhya","department":"Computer Science & Engg.","designation":"Associate Professor","email":"sumalatha@sit.ac.in","mobile":"9900609254"},{"id":179,"name":"Dr.Sumathi R","department":"Computer Science & Engg.","designation":"Professor","email":"rsumathi@sit.ac.in","mobile":"9972131024"},{"id":180,"name":"Dr.Sunitha N R","department":"Computer Science & Engg.","designation":"Professor","email":"nrsunitha@sit.ac.in","mobile":"9986276851"},{"id":181,"name":"Ms.Supriya J","department":"Computer Science & Engg.","designation":"Instructor","email":"supriyaj@sit.ac.in","mobile":"9353223416"},{"id":182,"name":"Mr.Sureshkumar B","department":"Computer Science & Engg.","designation":"System Manager","email":"sureshkumar@sit.ac.in","mobile":"9844082546"},{"id":183,"name":"Dr.T A Anupama ","department":"Computer Science & Engg.","designation":"Asst.Professor","email":"anupamata@sit.ac.in","mobile":"9900398122"},{"id":184,"name":"Ms.Tanuja V","department":"Computer Science & Engg.","designation":"Instructor","email":"tanujav@sit.ac.in","mobile":"8546991561"},{"id":185,"name":"Ms.Tejashwini Devaraj Arakeri","department":"Computer Science & Engg.","designation":"Asst.Professor","email":"tejashwinida@sit.ac.in","mobile":"8296631233"},{"id":186,"name":"Dr.Thejash G S","department":"Computer Science & Engg.","designation":"Asst.Professor","email":"dummy@sit.ac.in","mobile":""},{"id":187,"name":"Ms.Thejaswini S","department":"Computer Science & Engg.","designation":"Asst.Professor","email":"thejaswinis@sit.ac.in","mobile":"9964979708"},{"id":188,"name":"Mr.Vedamurthy H K","department":"Computer Science & Engg.","designation":"Asst.Professor","email":"vedamurthy@sit.ac.in","mobile":"9886900683"},{"id":189,"name":"Ms.Yashaswini H S","department":"Computer Science & Engg.","designation":"Instructor","email":"yashaswinirudresh20@gmail.com","mobile":"9738262482"},{"id":190,"name":"Mr.Boraiah D L","department":"Construction & Maintenance","designation":"Helper","email":"dummy@sit.ac.in","mobile":""},{"id":191,"name":"Mr.Chandrakantha H","department":"Construction & Maintenance","designation":"Jr.Engineer","email":"chandrakanthah@sit.ac.in","mobile":"9591685694"},{"id":192,"name":"Mr.Channabasavaiah B S","department":"Construction & Maintenance","designation":"Asst.Engineer","email":"bsc@sit.ac.in","mobile":"9845351756"},{"id":193,"name":"Mr.Gangadharaiah B","department":"Construction & Maintenance","designation":"Estate Officer","email":"bg@sit.ac.in","mobile":"9448660531"},{"id":194,"name":"Mr.Hanumantharayappa","department":"Construction & Maintenance","designation":"Peon","email":"hr@sit.ac.in","mobile":"9740584383"},{"id":195,"name":"Mr.Harindra Kumar G","department":"Construction & Maintenance","designation":"Asst.Engineer","email":"harindra@sit.ac.in","mobile":"8892844664"},{"id":196,"name":"Mr.Kiran Kumar M V","department":"Construction & Maintenance","designation":"Helper","email":"sitkiranpavi@sit.ac.in","mobile":"9900735369"},{"id":197,"name":"Mr.Krishnappa N","department":"Construction & Maintenance","designation":"Helper","email":"krishnappan@sit.ac.in","mobile":""},{"id":198,"name":"Mr.Lokesh B S","department":"Construction & Maintenance","designation":"Tech.Helper","email":"bsl@sit.ac.in","mobile":"9611782223"},{"id":199,"name":"Mr.Munilakshmaiah A","department":"Construction & Maintenance","designation":"Helper","email":"muni7335@sit.ac.in","mobile":"9036940901"},{"id":200,"name":"Mr.Narasimhamurthy N","department":"Construction & Maintenance","designation":"Peon","email":"narasimhamurthy@sit.ac.in","mobile":"9844105493"},{"id":201,"name":"Mr.Naveen Kumar B","department":"Construction & Maintenance","designation":"Attender","email":"tc_naveen2003@sit.ac.in","mobile":"9844187893"},{"id":202,"name":"Mr.Naveena R S","department":"Construction & Maintenance","designation":"Tech.Helper","email":"rsnaveena@sit.ac.in","mobile":"9886489874"},{"id":203,"name":"Mr.Ramaiah K","department":"Construction & Maintenance","designation":"Tech.Helper","email":"kr@sit.ac.in","mobile":"9945184580"},{"id":204,"name":"Mr.Renukesha G","department":"Construction & Maintenance","designation":"Head Gardner","email":"gr@sit.ac.in","mobile":"9844475574"},{"id":205,"name":"Mr.Rudranagesh M","department":"Construction & Maintenance","designation":"Helper","email":"rn@sit.ac.in","mobile":"8095270125"},{"id":206,"name":"Ms.Rudranamma S","department":"Construction & Maintenance","designation":"Peon","email":"rudranamma@sit.ac.in","mobile":"9591559632"},{"id":207,"name":"Mr.S V Kumar","department":"Construction & Maintenance","designation":"Tech.Helper","email":"skumarec@sit.ac.in","mobile":"9972570524"},{"id":208,"name":"Ms.Shetellamma","department":"Construction & Maintenance","designation":"Peon","email":"st@sit.ac.in","mobile":""},{"id":209,"name":"Mr.Shivakumara N","department":"Construction & Maintenance","designation":"Attender","email":"shivakumar266@sit.ac.in","mobile":""},{"id":210,"name":"Mr.Somashekara G","department":"Construction & Maintenance","designation":"Attender","email":"gss@sit.ac.in","mobile":"8884208174"},{"id":211,"name":"Mr.Sujeeth Kumar N","department":"Construction & Maintenance","designation":"Asst.Engineer","email":"dummy@sit.ac.in","mobile":"9513338088"},{"id":212,"name":"Mr.Umesh R","department":"Construction & Maintenance","designation":"Tech.Helper","email":"ur@sit.ac.in","mobile":"9880484049"},{"id":213,"name":"Mr.Veerabhadraswamy C S","department":"Construction & Maintenance","designation":"Tech.Helper","email":"csv@sit.ac.in","mobile":"8722987219"},{"id":214,"name":"Mr.Vinay Kumar S R","department":"Construction & Maintenance","designation":"Plumber","email":"vinaykumar@sit.ac.in","mobile":"9148088567"},{"id":215,"name":"Mr.Yellappa","department":"Construction & Maintenance","designation":"Peon","email":"yallappa@sit.ac.in","mobile":"7353060526"},{"id":216,"name":"Mr.Anand B","department":"Controller of Exams","designation":"Tech.Helper","email":"anand.b@sit.ac.in","mobile":"8095056157"},{"id":217,"name":"Mr.Ashwin K S","department":"Controller of Exams","designation":"Instructor","email":"ashwin_ks82@sit.ac.in","mobile":"9663384800"},{"id":218,"name":"Mr.Jagadeesh D","department":"Controller of Exams","designation":"Instructor","email":"jagadeesh@sit.ac.in","mobile":"9886912356"},{"id":219,"name":"Mr.Puttathipperudraswamy","department":"Controller of Exams","designation":"Instructor","email":"ptrswami@sit.ac.in","mobile":""},{"id":220,"name":"Mr.Ashoka K","department":"Electrical Engineering","designation":"Foreman","email":"ash_karu9@sit.ac.in","mobile":"9480540883"},{"id":221,"name":"Mr.Chandrashekar Swamy K M","department":"Electrical Engineering","designation":"Asst.Professor","email":"kmcswamy@sit.ac.in","mobile":"9886883488"},{"id":222,"name":"Dr.Jaynendra Kumar","department":"Electrical Engineering","designation":"Asst.Professor","email":"jaynendrakumar@sit.ac.in","mobile":"7985555946"},{"id":223,"name":"Mr.Jnanamurthy","department":"Electrical Engineering","designation":"Mechanic","email":"jnanamurthy@sit.ac.in","mobile":"9481555668"},{"id":224,"name":"Dr.Madhu B M","department":"Electrical Engineering","designation":"Asst.Professor","email":"madhubm@sit.ac.in","mobile":"9986163831"},{"id":225,"name":"Ms.Manjula S","department":"Electrical Engineering","designation":"Instructor","email":"manjulas@sit.ac.in","mobile":"8971963788"},{"id":226,"name":"Mr.Naveen Kumar S B","department":"Electrical Engineering","designation":"Asst.Professor","email":"sbnaveen@sit.ac.in","mobile":"9886456965"},{"id":227,"name":"Mr.Prashanth M","department":"Electrical Engineering","designation":"Asst.Inst.","email":"prashanthm@sit.ac.in","mobile":"9886968018"},{"id":228,"name":"Ms.Priya S","department":"Electrical Engineering","designation":"Asst.Professor","email":"priyas@sit.ac.in","mobile":"9986434716"},{"id":229,"name":"Mr.Pushkar Prakash Arya","department":"Electrical Engineering","designation":"Asst.Professor","email":"pushkar@sit.ac.in","mobile":"8471830347"},{"id":230,"name":"Mr.Rajesh Uppara","department":"Electrical Engineering","designation":"Asst.Professor","email":"rajeshu@sit.ac.in","mobile":""},{"id":231,"name":"Dr.Rashmi","department":"Electrical Engineering","designation":"Professor","email":"rash_mysore@sit.ac.in","mobile":"9740110576"},{"id":232,"name":"Mr.Rupesh K C","department":"Electrical Engineering","designation":"Asst.Professor","email":"rupeshkc@sit.ac.in","mobile":"9448256806"},{"id":233,"name":"Mr.Shivakumar R","department":"Electrical Engineering","designation":"Attender","email":"rshiva@sit.ac.in","mobile":"9972238114"},{"id":234,"name":"Mr.Shivakumara K H","department":"Electrical Engineering","designation":"Tech.Helper","email":"khshivakumar@sit.ac.in","mobile":"9481692018"},{"id":235,"name":"Mr.Shivakumaraswamy K","department":"Electrical Engineering","designation":"Instructor","email":"shiva_kvmath05@sit.ac.in","mobile":"9008547823"},{"id":236,"name":"Mr.Sridhar B A","department":"Electrical Engineering","designation":"Associate Professor","email":"sridharaba@sit.ac.in","mobile":"9243185619"},{"id":237,"name":"Dr.Sridhar H S","department":"Electrical Engineering","designation":"Asst.Professor","email":"sri054@sit.ac.in","mobile":"9886356950"},{"id":238,"name":"Mr.Sundara Rajan","department":"Electrical Engineering","designation":"Research Advisor","email":"jsrajan12@gmail.com","mobile":"7829901185"},{"id":239,"name":"Dr.Vinayaka K U","department":"Electrical Engineering","designation":"Asst.Professor","email":"vinayaka@sit.ac.in","mobile":"9538539591"},{"id":240,"name":"Dr.Aparanji V M","department":"Electronics & Communication","designation":"Asst.Professor","email":"vmasit@sit.ac.in","mobile":"9886656454"},{"id":241,"name":"Dr.Dhruvakumar T","department":"Electronics & Communication","designation":"Asst.Professor","email":"dhruvakumar@sit.ac.in","mobile":"9448416732"},{"id":242,"name":"Ms.Geetharani T O","department":"Electronics & Communication","designation":"Associate Professor","email":"togeetha@sit.ac.in","mobile":"9844538088"},{"id":243,"name":"Mr.Girish Kumar P","department":"Electronics & Communication","designation":"Asst.Inst.","email":"pgirishec@sit.ac.in","mobile":"9449319505"},{"id":244,"name":"Dr.Harshalatha Y","department":"Electronics & Communication","designation":"Asst.Professor","email":"latha_rupesh2002@sit.ac.in","mobile":"9886867162"},{"id":245,"name":"Dr.Jyothi Prakash K V","department":"Electronics & Communication","designation":"Asst.Professor","email":"jyothiprakashkv@sit.ac.in","mobile":"9448121007"},{"id":246,"name":"Ms.Kalpana B S","department":"Electronics & Communication","designation":"Operator","email":"kalpana_bs@sit.ac.in","mobile":"7795445887"},{"id":247,"name":"Mr.Kiran Kori N","department":"Electronics & Communication","designation":"Foreman","email":"prkkori@sit.ac.in","mobile":"9964285083"},{"id":248,"name":"Dr.Kumaraswamy R","department":"Electronics & Communication","designation":"Professor","email":"hyrkswamy@sit.ac.in","mobile":"9480344624"},{"id":249,"name":"Mr.Lokesh","department":"Electronics & Communication","designation":"Helper","email":"lokeshec@sit.ac.in","mobile":"9741043934"},{"id":250,"name":"Mr.Mahalingesh T C","department":"Electronics & Communication","designation":"Associate Professor","email":"tcm@sit.ac.in","mobile":"9945193851"},{"id":251,"name":"Dr.Mala S","department":"Electronics & Communication","designation":"Asst.Professor","email":"mala_s28@sit.ac.in","mobile":"9945788210"},{"id":252,"name":"Mr.Malleshaiah P G","department":"Electronics & Communication","designation":"Instructor","email":"pgmallesh@sit.ac.in","mobile":"9986581794"},{"id":253,"name":"Ms.Manasa K H","department":"Electronics & Communication","designation":"Instructor","email":"manasa.kh18@gmail.com","mobile":"8105045495"},{"id":254,"name":"Mr.Manjunath H G","department":"Electronics & Communication","designation":"Tech.Helper","email":"manjuhg@sit.ac.in","mobile":"9845881604"},{"id":255,"name":"Ms.Manjushree K","department":"Electronics & Communication","designation":"Asst.Professor","email":"manjushreek@sit.ac.in","mobile":"9036763567"},{"id":256,"name":"Mr.Mukundarao A N","department":"Electronics & Communication","designation":"Associate Professor","email":"anmukund@sit.ac.in","mobile":"9449942852"},{"id":257,"name":"Mr.Prabhu S P","department":"Electronics & Communication","designation":"Mechanic","email":"prabhu@sit.ac.in","mobile":"9902856537"},{"id":258,"name":"Mr.Pradeep H S","department":"Electronics & Communication","designation":"Asst.Professor","email":"pradeephs@sit.ac.in","mobile":"9886730971"},{"id":259,"name":"Mr.Purushottama T L","department":"Electronics & Communication","designation":"Asst.Professor","email":"purushothamatl@sit.ac.in","mobile":"8105491827"},{"id":260,"name":"Dr.Raveesh S","department":"Electronics & Communication","designation":"Asst.Professor","email":"sci1986@sit.ac.in","mobile":"9964707639"},{"id":261,"name":"Mr.Renukaiah","department":"Electronics & Communication","designation":"Attender","email":"renukaiahr@sit.ac.in","mobile":"9844360428"},{"id":262,"name":"Mr.Rohith C","department":"Electronics & Communication","designation":"Instructor","email":"rohithc@sit.ac.in","mobile":"9880193123"},{"id":263,"name":"Dr.Roopa S","department":"Electronics & Communication","designation":"Asst.Professor","email":"roopas@sit.ac.in","mobile":"9741019227"},{"id":264,"name":"Mr.Sateesh Kumar T R","department":"Electronics & Communication","designation":"Asst.Professor","email":"sateesh_tr@sit.ac.in","mobile":"9448416560"},{"id":265,"name":"Dr.Shashikala B N","department":"Electronics & Communication","designation":"Associate Professor","email":"deepashashikala@sit.ac.in","mobile":"9449028838"},{"id":266,"name":"Dr.Sheela S J","department":"Electronics & Communication","designation":"Asst.Professor","email":"sheeladinu@sit.ac.in","mobile":"9448743643"},{"id":267,"name":"Dr.Shilpashree P S","department":"Electronics & Communication","designation":"Asst.Professor","email":"shilpashree@sit.ac.in","mobile":"9964980246"},{"id":268,"name":"Ms.Shobha S Gouder","department":"Electronics & Communication","designation":"Associate Professor","email":"shobha.goudar@sit.ac.in","mobile":"9449626924"},{"id":269,"name":"Ms.Shubha G","department":"Electronics & Communication","designation":"Associate Professor","email":"shubha.g@sit.ac.in","mobile":"9480542088"},{"id":270,"name":"Dr.Suresh K V","department":"Electronics & Communication","designation":"Professor","email":"sureshkvsit@sit.ac.in","mobile":"9480408091"},{"id":271,"name":"Dr.Veena Karjigi","department":"Electronics & Communication","designation":"Associate Professor","email":"veena.karjigi@sit.ac.in","mobile":"9481489700"},{"id":272,"name":"Dr.Venkatesh Murthy B T","department":"Electronics & Communication","designation":"Asst.Professor","email":"btv_murthy@sit.ac.in","mobile":"9845998640"},{"id":273,"name":"Mr.Vinaya S J","department":"Electronics & Communication","designation":"Asst.Professor","email":"vinayasj@sit.ac.in","mobile":"9901188715"},{"id":274,"name":"Mr.Aradhya B R V","department":"Electronics & Inst. Engg.","designation":"Asst.Inst.","email":"brv@sit.ac.in","mobile":"9448214317"},{"id":275,"name":"Mr.Basavaraju K S","department":"Electronics & Inst. Engg.","designation":"Asst.Professor","email":"ksbasavaraju@sit.ac.in","mobile":"9900545085"},{"id":276,"name":"Mr.Bharath T G","department":"Electronics & Inst. Engg.","designation":"Instructor","email":"bharathtg@sit.ac.in","mobile":"9663786105"},{"id":277,"name":"Ms.Chaitra C","department":"Electronics & Inst. Engg.","designation":"Asst.Professor","email":"chaitrac@sit.ac.in","mobile":"9686468926"},{"id":278,"name":"Mr.Chidananda Sagar G S","department":"Electronics & Inst. Engg.","designation":"Instructor","email":"sagar@sit.ac.in","mobile":"9964644946"},{"id":279,"name":"Ms.Deepa","department":"Electronics & Inst. Engg.","designation":"Asst.Professor","email":"rmdeepa@sit.ac.in","mobile":"9591717912"},{"id":280,"name":"Mr.Guruprasad R","department":"Electronics & Inst. Engg.","designation":"Tech.Helper","email":"gurur@sit.ac.in","mobile":"9611776772"},{"id":281,"name":"Dr.Kalpana H M","department":"Electronics & Inst. Engg.","designation":"Professor","email":"kalpanahm@sit.ac.in","mobile":"9480784395"},{"id":282,"name":"Dr.Keshavamurthy G N","department":"Electronics & Inst. Engg.","designation":"Associate Professor","email":"gnk@sit.ac.in","mobile":"9845657064"},{"id":283,"name":"Dr.Kiranmayi G R","department":"Electronics & Inst. Engg.","designation":"Associate Professor","email":"kiranmayi@sit.ac.in","mobile":"9880890246"},{"id":284,"name":"Mr.Kishore C","department":"Electronics & Inst. Engg.","designation":"Asst.Professor","email":"kishorec@sit.ac.in","mobile":"7259670670"},{"id":285,"name":"Dr.Latha H K E","department":"Electronics & Inst. Engg.","designation":"Professor","email":"lathahke@sit.ac.in","mobile":"9449852696"},{"id":286,"name":"Dr.Panwala Fenil Chetankumar","department":"Electronics & Inst. Engg.","designation":"Asst.Professor","email":"fenilpanwala@sit.ac.in","mobile":"9790717226"},{"id":287,"name":"Dr.Rajeshwari B S","department":"Electronics & Inst. Engg.","designation":"Asst.Professor","email":"rajeshwari@sit.ac.in","mobile":"9449238899"},{"id":288,"name":"Mr.Ramesha K S","department":"Electronics & Inst. Engg.","designation":"Asst.Professor","email":"rameshaks@sit.ac.in","mobile":"9845020784"},{"id":289,"name":"Dr.Ravi H K","department":"Electronics & Inst. Engg.","designation":"Asst.Professor","email":"ravihk@sit.ac.in","mobile":"9141855736"},{"id":290,"name":"Ms.Savitha D","department":"Electronics & Inst. Engg.","designation":"Asst.Professor","email":"savithad@sit.ac.in","mobile":"9916430457"},{"id":291,"name":"Dr.Siddeswara prasad V","department":"Electronics & Inst. Engg.","designation":"Professor","email":"vsiddesh@sit.ac.in","mobile":"9480030333"},{"id":292,"name":"Mr.Somashekaraiah G","department":"Electronics & Inst. Engg.","designation":"Attender","email":"somashekaraiah@sit.ac.in","mobile":"9731845016"},{"id":293,"name":"Mr.Sunil Kumar V S","department":"Electronics & Inst. Engg.","designation":"Asst.Inst.","email":"sunilkumarvs@sit.ac.in","mobile":"9535396667"},{"id":294,"name":"Mr.Yogeesha M N","department":"Electronics & Inst. Engg.","designation":"Attender","email":"mnyogeesha@sit.ac.in","mobile":"9845718106"},{"id":295,"name":"Ms.Hemalatha K S","department":"Health Centre","designation":"Staff Nurse","email":"hemaks@sit.ac.in","mobile":"9663348984"},{"id":296,"name":"Mr.Rajashekara N S","department":"Health Centre","designation":"Tech.Helper","email":"rajashekar@sit.ac.in","mobile":"9844062866"},{"id":297,"name":"Dr.Sateesh Patil","department":"Health Centre","designation":"R.M.O.","email":"sateeshpatil@sit.ac.in","mobile":"9448214341"},{"id":298,"name":"Dr.Adavesha B","department":"Industrial Engg. & Management","designation":"Associate Professor","email":"badavish@sit.ac.in","mobile":"9964388174"},{"id":299,"name":"Dr.Anil K C","department":"Industrial Engg. & Management","designation":"Asst.Professor","email":"anilkc@sit.ac.in","mobile":"9986900982"},{"id":300,"name":"Mr.Basavaraju","department":"Industrial Engg. & Management","designation":"Foreman","email":"basavaraju@sit.ac.in","mobile":"9036433121"},{"id":301,"name":"Mr.Dayanandamurthy K N","department":"Industrial Engg. & Management","designation":"Attender","email":"kndlib@sit.ac.in","mobile":"9900735367"},{"id":302,"name":"Dr.Jagadeesh P Ganjigatti","department":"Industrial Engg. & Management","designation":"Professor","email":"jpganjigatti@sit.ac.in","mobile":"9964313284"},{"id":303,"name":"Dr.Lathashankar B","department":"Industrial Engg. & Management","designation":"Associate Professor","email":"blshankar@sit.ac.in","mobile":"9964505469"},{"id":304,"name":"Dr.Manjunath K V","department":"Industrial Engg. & Management","designation":"Asst.Professor","email":"kvmanju@sit.ac.in","mobile":"9916308766"},{"id":305,"name":"Dr.Mohankumar T S","department":"Industrial Engg. & Management","designation":"Asst.Professor","email":"mohankumarts@sit.ac.in","mobile":"9964107757"},{"id":306,"name":"Dr.Nagaraj P M","department":"Industrial Engg. & Management","designation":"Asst.Professor","email":"nagarajpm@sit.ac.in","mobile":"9886515821"},{"id":307,"name":"Dr.Prabhushankar G V","department":"Industrial Engg. & Management","designation":"Professor","email":"gvpshankar@sit.ac.in","mobile":"9845430739"},{"id":308,"name":"Mr.Rajanna T M","department":"Industrial Engg. & Management","designation":"Helper","email":"tmrajanna@sit.ac.in","mobile":"9902857055"},{"id":309,"name":"Mr.Umashankar M P","department":"Industrial Engg. & Management","designation":"Instructor","email":"mpushankar@sit.ac.in","mobile":"9844314441"},{"id":310,"name":"Dr.Veena T R","department":"Industrial Engg. & Management","designation":"Asst.Professor","email":"trveena@sit.ac.in","mobile":"9844274363"},{"id":311,"name":"Dr.Vishwas M","department":"Industrial Engg. & Management","designation":"Asst.Professor","email":"vishwasm@sit.ac.in","mobile":"9986644944"},{"id":312,"name":"Mr.Yograj Prakash","department":"Industrial Engg. & Management","designation":"Instructor","email":"yograj@sit.ac.in","mobile":"9844414207"},{"id":313,"name":"Dr.Aparna R","department":"Information Science & Engg.","designation":"Professor","email":"raparna@sit.ac.in","mobile":"9480408455"},{"id":314,"name":"Mr.Basavarajaiah","department":"Information Science & Engg.","designation":"Attender","email":"brche@sit.ac.in","mobile":"9611047321"},{"id":315,"name":"Ms.G N Rajani","department":"Information Science & Engg.","designation":"Asst.Professor","email":"rajanign@sit.ac.in","mobile":"8217072057"},{"id":316,"name":"Mr.Ganesh B P","department":"Information Science & Engg.","designation":"Operator","email":"ganesh@sit.ac.in","mobile":"9481553250"},{"id":317,"name":"Ms.Gangutai Uramanatti","department":"Information Science & Engg.","designation":"Asst.Professor","email":"gangutaiu@sit.ac.in","mobile":"8105027142"},{"id":318,"name":"Dr.Hemavathi","department":"Information Science & Engg.","designation":"Asst.Professor","email":"hemavd@sit.ac.in","mobile":"9611270332"},{"id":319,"name":"Dr.Jagadamba G","department":"Information Science & Engg.","designation":"Asst.Professor","email":"jagadamba@sit.ac.in","mobile":"9481552552"},{"id":320,"name":"Dr.Jayanna H S","department":"Information Science & Engg.","designation":"Professor","email":"jayannahs@sit.ac.in","mobile":"9481556611"},{"id":321,"name":"Dr.Kavitha H","department":"Information Science & Engg.","designation":"Associate Professor","email":"hkavitha@sit.ac.in","mobile":"9980168806"},{"id":322,"name":"Mr.Keerthan Kumar T G","department":"Information Science & Engg.","designation":"Asst.Professor","email":"keerthankumartg@sit.ac.in","mobile":"8884674522"},{"id":323,"name":"Mr.Kumar Devagiri","department":"Information Science & Engg.","designation":"Instructor","email":"kdevgiri@sit.ac.in","mobile":"9164510610"},{"id":324,"name":"Dr.Nagarathna B Chittaragi","department":"Information Science & Engg.","designation":"Associate Professor","email":"chittaragi@sit.ac.in","mobile":"9449303604"},{"id":325,"name":"Dr.Purohit Shrinivasacharya","department":"Information Science & Engg.","designation":"Associate Professor","email":"purohit@sit.ac.in","mobile":"9448176001"},{"id":326,"name":"Mr.Rajanna D S","department":"Information Science & Engg.","designation":"Attender","email":"dsr@sit.ac.in","mobile":"9482722359"},{"id":327,"name":"Mr.Ramu S","department":"Information Science & Engg.","designation":"Asst.Professor","email":"ramu@sit.ac.in","mobile":"9986739198"},{"id":328,"name":"Dr.Rudramurthy M S","department":"Information Science & Engg.","designation":"Associate Professor","email":"rudrams@sit.ac.in","mobile":"9482572737"},{"id":329,"name":"Dr.Sharathkumar S","department":"Information Science & Engg.","designation":"Asst.Professor","email":"skumars@sit.ac.in","mobile":"9886919832"},{"id":330,"name":"Ms.Sharmila S P","department":"Information Science & Engg.","designation":"Asst.Professor","email":"sharmila@sit.ac.in","mobile":"9964170457"},{"id":331,"name":"Ms.Shruthi M","department":"Information Science & Engg.","designation":"Instructor","email":"shrutim@sit.ac.in","mobile":"8496898387"},{"id":332,"name":"Ms.Sowmya R B","department":"Information Science & Engg.","designation":"Asst.Professor","email":"sowmyarb@sit.ac.in","mobile":"7022795305"},{"id":333,"name":"Ms.Sushma S A","department":"Information Science & Engg.","designation":"Asst.Professor","email":"sushmasa@sit.ac.in","mobile":"9449087574"},{"id":334,"name":"Ms.Vidhya Shree N S","department":"Information Science & Engg.","designation":"Asst.Professor","email":"vidhyashreens@sit.ac.in","mobile":"7760889930"},{"id":335,"name":"Ms.Asha K","department":"Library","designation":"Asst. Librarian","email":"ashak@sit.ac.in","mobile":""},{"id":336,"name":"Mr.Girish N K","department":"Library","designation":"Jr.Lib.Asst.","email":"nkgirish@sit.ac.in","mobile":"9448769682"},{"id":337,"name":"Mr.Mallesh","department":"Library","designation":"Jr.Lib.Asst.","email":"mallesh@sit.ac.in","mobile":"9964216500"},{"id":338,"name":"Mr.Mohan Kumar G H","department":"Library","designation":"Asst. Librarian","email":"ghmohan@sit.ac.in","mobile":"9900599585"},{"id":339,"name":"Mr.Puttaraju P","department":"Library","designation":"Attender","email":"puttaraju@sit.ac.in","mobile":"9901800153"},{"id":340,"name":"Mr.Shivakumara M A","department":"Library","designation":"Jr.Lib.Asst.","email":"shivakumarma@sit.ac.in","mobile":"9035541559"},{"id":341,"name":"Ms.Sindhu M D","department":"Library","designation":"S.D.C.","email":"sindhu@sit.ac.in","mobile":""},{"id":342,"name":"Mr.Venkatesh K S","department":"Library","designation":"Helper","email":"ksvenkatesh@sit.ac.in","mobile":"9743273927"},{"id":343,"name":"Mr.Yogeesh H S","department":"Library","designation":"Attender","email":"yogeeshhs@sit.ac.in","mobile":""},{"id":344,"name":"Dr.Basavaraja M Ittanagi","department":"Mathematics","designation":"Asst.Professor","email":"bmi@sit.ac.in","mobile":"9481491578"},{"id":345,"name":"Ms.Chethana R","department":"Mathematics","designation":"Asst.Professor","email":"cr@sit.ac.in","mobile":"9448542864"},{"id":346,"name":"Dr.Hemavathy P S","department":"Mathematics","designation":"Asst.Professor","email":"psh@sit.ac.in","mobile":"9449997704"},{"id":347,"name":"Ms.Kavitha G N","department":"Mathematics","designation":"Asst.Professor","email":"kavithagn@sit.ac.in","mobile":"9742240444"},{"id":348,"name":"Dr.Manjula G J","department":"Mathematics","designation":"Associate Professor","email":"gjm@sit.ac.in","mobile":"9964774708"},{"id":349,"name":"Dr.Naveenkumar R T","department":"Mathematics","designation":"Asst.Professor","email":"naveenrt@sit.ac.in","mobile":"8105004060"},{"id":350,"name":"Dr.Prasanna B M R","department":"Mathematics","designation":"Professor","email":"bmrp@sit.ac.in","mobile":"9448893047"},{"id":351,"name":"Mr.Raghu M Banakar","department":"Mathematics","designation":"Asst.Professor","email":"raghumb@sit.ac.in","mobile":"8722521759"},{"id":352,"name":"Dr.Siddagangamma N G","department":"Mathematics","designation":"Asst.Professor","email":"ngs@sit.ac.in","mobile":"9886179789"},{"id":353,"name":"Dr.Siddalingaprasad M","department":"Mathematics","designation":"Associate Professor","email":"msp@sit.ac.in","mobile":"9342144371"},{"id":354,"name":"Dr.SureshKumar S","department":"Mathematics","designation":"Professor","email":"ssk@sit.ac.in","mobile":"9449626854"},{"id":355,"name":"Dr.Tanuja A","department":"Mathematics","designation":"Asst.Professor","email":"tanujaa@sit.ac.in","mobile":"9945103129"},{"id":356,"name":"Mr.Umashankar C R","department":"Mathematics","designation":"Attender","email":"cru@sit.ac.in","mobile":"9480201300"},{"id":357,"name":"Dr.Usha P","department":"Mathematics","designation":"Professor","email":"pu@sit.ac.in","mobile":"9448173877"},{"id":358,"name":"Ms.Vanitha G P","department":"Mathematics","designation":"Asst.Professor","email":"vanithagp@sit.ac.in","mobile":"8123444023"},{"id":359,"name":"Dr.Asha Gowda Karegowda","department":"MCA","designation":"Associate Professor","email":"asha_gowda@sit.ac.in","mobile":"9844327268"},{"id":360,"name":"Dr.Bhanuprakash C","department":"MCA","designation":"Asst.Professor","email":"bc_prakash@sit.ac.in","mobile":"9844418422"},{"id":361,"name":"Mr.Deepak Rao T K","department":"MCA","designation":"Instructor","email":"deepak_tk@sit.ac.in","mobile":"9901995908"},{"id":362,"name":"Mr.Prakasha K R","department":"MCA","designation":"Attender","email":"prakashkr@sit.ac.in","mobile":"9611776797"},{"id":363,"name":"Dr.Prashanth G K","department":"MCA","designation":"Asst.Professor","email":"prashanthgk@sit.ac.in","mobile":"9980933552"},{"id":364,"name":"Dr.Premasudha B G","department":"MCA","designation":"Professor","email":"bgpremasudha@sit.ac.in","mobile":"9845238744"},{"id":365,"name":"Mr.Ramesh C N","department":"MCA","designation":"Asst.Professor","email":"rameshcn@sit.ac.in","mobile":"9379794232"},{"id":366,"name":"Mr.Venkatareddy Y","department":"MCA","designation":"Asst.Professor","email":"yvr@sit.ac.in","mobile":"8088004356"},{"id":367,"name":"Dr.Vijaya kumar H S","department":"MCA","designation":"Asst.Professor","email":"vijayakumar@sit.ac.in","mobile":"9844521479"},{"id":368,"name":"Mr.Virupakshaiah H K","department":"MCA","designation":"Asst.Professor","email":"viru@sit.ac.in","mobile":"9448701608"},{"id":369,"name":"Dr.Adarsh S H","department":"Mechanical Engineering","designation":"Asst.Professor","email":"shadarsh@sit.ac.in","mobile":"9663383140"},{"id":370,"name":"Dr.Arun S B","department":"Mechanical Engineering","designation":"Asst.Professor","email":"arunsb@sit.ac.in","mobile":"9731104711"},{"id":371,"name":"Dr.Bharath H S","department":"Mechanical Engineering","designation":"Asst.Professor","email":"bharathhs@sit.ac.in","mobile":"8904318630"},{"id":372,"name":"Dr.Chandrappa K","department":"Mechanical Engineering","designation":"Associate Professor","email":"kchandrappa@sit.ac.in","mobile":"9632173882"},{"id":373,"name":"Mr.Ekanthappa J","department":"Mechanical Engineering","designation":"Asst.Professor","email":"ekanthappaj@sit.ac.in","mobile":"9964562177"},{"id":374,"name":"Dr.Gautham M G","department":"Mechanical Engineering","designation":"Asst.Professor","email":"gauthammg@sit.ac.in","mobile":"9740771357"},{"id":375,"name":"Mr.H V Sathish Kumar","department":"Mechanical Engineering","designation":"Instructor","email":"hvsathish@sit.ac.in","mobile":"9844235695"},{"id":376,"name":"Mr.Hanumegowda S H","department":"Mechanical Engineering","designation":"Tech.Helper","email":"shhanumaegowda@sit.ac.in","mobile":"9845574743"},{"id":377,"name":"Mr.Hemanth Raj M G","department":"Mechanical Engineering","designation":"Instructor","email":"hemanthraj@sit.ac.in","mobile":"8792132207"},{"id":378,"name":"Mr.Jagadeesh","department":"Mechanical Engineering","designation":"Instructor","email":"jagadeesh_sit@sit.ac.in","mobile":"9886493868"},{"id":379,"name":"Mr.Jagadeeshkumar B H","department":"Mechanical Engineering","designation":"Mechanic","email":"bhjagadeeshkumar@sit.ac.in","mobile":"9611146327"},{"id":380,"name":"Dr.Jatadhara G S","department":"Mechanical Engineering","designation":"Asst.Professor","email":"jatadhara@sit.ac.in","mobile":"9844494134"},{"id":381,"name":"Mr.Kumar N V","department":"Mechanical Engineering","designation":"Instructor","email":"kumarnv@sit.ac.in","mobile":"9964747692"},{"id":382,"name":"Mr.Kumaraswamy S","department":"Mechanical Engineering","designation":"Operator","email":"kumaraswamy@sit.ac.in","mobile":"9844119150"},{"id":383,"name":"Dr.Lohith C P","department":"Mechanical Engineering","designation":"Asst.Professor","email":"lohithcp@sit.ac.in","mobile":"9342227158"},{"id":384,"name":"Dr.Madhu H C","department":"Mechanical Engineering","designation":"Asst.Professor","email":"hcmadhu@sit.ac.in","mobile":"9611270525"},{"id":385,"name":"Dr.Mallik U S","department":"Mechanical Engineering","designation":"Professor","email":"usm@sit.ac.in","mobile":"9448166621"},{"id":386,"name":"Mr.Mallikarjuna N S","department":"Mechanical Engineering","designation":"Instructor","email":"nsmallikarjuna@sit.ac.in","mobile":"9036756062"},{"id":387,"name":"Dr.Manjunath C T","department":"Mechanical Engineering","designation":"Asst.Professor","email":"ctmanjunath@sit.ac.in","mobile":"9449009911"},{"id":388,"name":"Dr.Manjunath H","department":"Mechanical Engineering","designation":"Asst.Professor","email":"hmanjunath@sit.ac.in","mobile":"9448808299"},{"id":389,"name":"Mr.Mohan Kumar M","department":"Mechanical Engineering","designation":"Instructor","email":"mohankumarm@sit.ac.in","mobile":"7760888832"},{"id":390,"name":"Mr.Mudalagiriyappa T","department":"Mechanical Engineering","designation":"Mechanic","email":"tmudalagiriyappa@sit.ac.in","mobile":"9845306189"},{"id":391,"name":"Dr.Nagaraju","department":"Mechanical Engineering","designation":"Asst.Professor","email":"nagaraju@sit.ac.in","mobile":"9986078536"},{"id":392,"name":"Mr.Naresh H","department":"Mechanical Engineering","designation":"Asst.Professor","email":"nareshh@sit.ac.in","mobile":"9008489027"},{"id":393,"name":"Dr.Nithesh K G","department":"Mechanical Engineering","designation":"Asst.Professor","email":"nitheshkg@sit.ac.in","mobile":"9176485967"},{"id":394,"name":"Dr.Omkaresh B R","department":"Mechanical Engineering","designation":"Asst.Professor","email":"omkar@sit.ac.in","mobile":"8904202538"},{"id":395,"name":"Dr.Poornima C","department":"Mechanical Engineering","designation":"Asst.Professor","email":"poornimac@sit.ac.in","mobile":"9739207384"},{"id":396,"name":"Mr.Prashanth R","department":"Mechanical Engineering","designation":"Instructor","email":"rprashanth@sit.ac.in","mobile":"9880981981"},{"id":397,"name":"Dr.Prashantha S","department":"Mechanical Engineering","designation":"Asst.Professor","email":"sprashantha@sit.ac.in","mobile":"9448728958"},{"id":398,"name":"Mr.Rajakumar T R","department":"Mechanical Engineering","designation":"Instructor","email":"trrajukumar@sit.ac.in","mobile":"8453539731"},{"id":399,"name":"Mr.Rakesh G R","department":"Mechanical Engineering","designation":"Mechanic","email":"rakeshgr@sit.ac.in","mobile":"9980916555"},{"id":400,"name":"Mr.Satisha K R","department":"Mechanical Engineering","designation":"Tech.Helper","email":"krsatish@sit.ac.in","mobile":"9379830346"},{"id":401,"name":"Mr.Shankarappa K S","department":"Mechanical Engineering","designation":"Tech.Helper","email":"shankarappaks@sit.ac.in","mobile":""},{"id":402,"name":"Dr.Shanmuga Priya N","department":"Mechanical Engineering","designation":"Asst.Professor","email":"nspriya@sit.ac.in","mobile":"9916267289"},{"id":403,"name":"Mr.Shashidhar G M","department":"Mechanical Engineering","designation":"Tech.Helper","email":"gmshashidhara@sit.ac.in","mobile":"9008891159"},{"id":404,"name":"Dr.Shashishekar C","department":"Mechanical Engineering","designation":"Associate Professor","email":"csshek@sit.ac.in","mobile":"9844356911"},{"id":405,"name":"Dr.Shivashankar H S","department":"Mechanical Engineering","designation":"Associate Professor","email":"hssmed@sit.ac.in","mobile":"9844207768"},{"id":406,"name":"Dr.Shivasiddaramaiah A G","department":"Mechanical Engineering","designation":"Asst.Professor","email":"agshivasiddaramaiah@sit.ac.in","mobile":"9448175427"},{"id":407,"name":"Mr.Sriharsha Kumar","department":"Mechanical Engineering","designation":"Asst.Professor","email":"sriharsha@sit.ac.in","mobile":"9986148281"},{"id":408,"name":"Dr.Sudeepkumar T","department":"Mechanical Engineering","designation":"Asst.Professor","email":"sudeepkumart@sit.ac.in","mobile":"9900446028"},{"id":409,"name":"Dr.Sunil B","department":"Mechanical Engineering","designation":"Asst.Professor","email":"sunilb@sit.ac.in","mobile":"9964011547"},{"id":410,"name":"Mr.Suresh B C","department":"Mechanical Engineering","designation":"Associate Professor","email":"bcs@sit.ac.in","mobile":"9900575337"},{"id":411,"name":"Dr.Tharakeshwara T K","department":"Mechanical Engineering","designation":"Asst.Professor","email":"tktarakesh@sit.ac.in","mobile":"9343001494"},{"id":412,"name":"Dr.Vasudeva B","department":"Mechanical Engineering","designation":"Associate Professor","email":"bva@sit.ac.in","mobile":"9449913030"},{"id":413,"name":"Mr.Venkatesh H K","department":"Mechanical Engineering","designation":"Tech.Helper","email":"venkateshhk@sit.ac.in","mobile":"7676568433"},{"id":414,"name":"Mr.Vijaykumar R S","department":"Mechanical Engineering","designation":"Associate Professor","email":"rsv@sit.ac.in","mobile":"9379223152"},{"id":415,"name":"Mr.Vineethkumar T V","department":"Mechanical Engineering","designation":"Asst.Professor","email":"vineethkumartv@sit.ac.in","mobile":"9738213995"},{"id":416,"name":"Dr.Virupaxi Auradi","department":"Mechanical Engineering","designation":"Professor","email":"vsauradi@sit.ac.in","mobile":"9844386037"},{"id":417,"name":"Mr.Vishwash B","department":"Mechanical Engineering","designation":"Asst.Professor","email":"vishwashbv@sit.ac.in","mobile":"8951852543"},{"id":418,"name":"Ms.Aishwarya M R","department":"PGDMS","designation":"Asst.Professor","email":"aishwaryamr@sit.ac.in","mobile":"9945917991"},{"id":419,"name":"Dr.Ajoykumar M","department":"PGDMS","designation":"Associate Professor","email":"ajoy@sit.ac.in","mobile":"9886145620"},{"id":420,"name":"Mr.Eralingappa G E","department":"PGDMS","designation":"Library Asst.","email":"eralingappa@sit.ac.in","mobile":"9663599692"},{"id":421,"name":"Mr.Gireesh Y M","department":"PGDMS","designation":"Asst.Professor","email":"gireeshym@sit.ac.in","mobile":"9663081501"},{"id":422,"name":"Mr.Jagadeesh D R","department":"PGDMS","designation":"Attender","email":"jagadeesh_dr@sit.ac.in","mobile":"9448747889"},{"id":423,"name":"Mr.Mahantesh Jakathy","department":"PGDMS","designation":"Asst.Professor","email":"mahanteshj@sit.ac.in","mobile":"9886634895"},{"id":424,"name":"Dr.Manu T U","department":"PGDMS","designation":"Asst.Professor","email":"manu@sit.ac.in","mobile":"9886345863"},{"id":425,"name":"Dr.Pannerselvam S","department":"PGDMS","designation":"Professor","email":"panneerselvam@sit.ac.in","mobile":"9480250369"},{"id":426,"name":"Dr.Preeti Desai","department":"PGDMS","designation":"Asst.Professor","email":"preeti@sit.ac.in","mobile":""},{"id":427,"name":"Ms.Pushpalatha S Patil","department":"PGDMS","designation":"Asst.Professor","email":"pushpalatha@sit.ac.in","mobile":"9986000424"},{"id":428,"name":"Mr.Satheeshababu B K","department":"PGDMS","designation":"Operator","email":"bk_sathish@sit.ac.in","mobile":"9739486306"},{"id":429,"name":"Mr.Shivananda N","department":"PGDMS","designation":"Attender","email":"nshivananda@sit.ac.in","mobile":"9686400344"},{"id":430,"name":"Mr.Shivaraddi E Hosamani","department":"PGDMS","designation":"Instructor","email":"shivaraddi@sit.ac.in","mobile":"9986423821"},{"id":431,"name":"Dr.Somashekar C","department":"PGDMS","designation":"Associate Professor","email":"csomashekhar@sit.ac.in","mobile":"9844420529"},{"id":432,"name":"Ms.Soumya Harish","department":"PGDMS","designation":"Administrative Asst.","email":"soumya@sit.ac.in","mobile":"9743414667"},{"id":433,"name":"Mr.Sreeramu M","department":"PGDMS","designation":"Library Asst.","email":"sreeramu@sit.ac.in","mobile":"9740579450"},{"id":434,"name":"Mr.Vivek G S","department":"PGDMS","designation":"Asst.Professor","email":"vivekgs@sit.ac.in","mobile":"9880052710"},{"id":435,"name":"Mr.Manjunath C N","department":"Physics","designation":"Asst.Professor","email":"cnm@sit.ac.in","mobile":"9886033360"},{"id":436,"name":"Dr.Manohara S R","department":"Physics","designation":"Associate Professor","email":"manoharasr@sit.ac.in","mobile":"9900397940"},{"id":437,"name":"Ms.Shobha H B","department":"Physics","designation":"Lab Instructor","email":"shobhamurthy@sit.ac.in","mobile":"9731793133"},{"id":438,"name":"Ms.Sujatha K","department":"Physics","designation":"Attender","email":"sujathak@sit.ac.in","mobile":""},{"id":439,"name":"Dr.Suresh Kumar H M","department":"Physics","designation":"Professor","email":"hms@sit.ac.in","mobile":"9341243791"},{"id":440,"name":"Ms.Archana N","department":"Siddaganga TBI","designation":"Finance Officer & Admin","email":"archanan@sit.ac.in","mobile":"6360176013"},{"id":441,"name":"Mr.Jagan Karthick G","department":"Siddaganga TBI","designation":"Head STBI","email":"headsiddagangatbi@sit.ac.in","mobile":"9710129060"},{"id":442,"name":"Mr.Puneeth S","department":"Siddaganga TBI","designation":"Manager","email":"puneeth@sit.ac.in","mobile":"9900377666"},{"id":443,"name":"Mr.Ranganath R","department":"Siddaganga TBI","designation":"Incubation Associate","email":"ranganathr@sit.ac.in","mobile":"7760472452"},{"id":444,"name":"Mr.Chandrashekara T Y","department":"Sports","designation":"Peon","email":"chandrashekar_ty@sit.ac.in","mobile":"8722770863"},{"id":445,"name":"Mr.Mahadeva Swamy A M","department":"Sports","designation":"Asst. P.E.D","email":"mahadevaswamy@sit.ac.in","mobile":"9242064430"},{"id":446,"name":"Mr.Veerana Gowda","department":"Sports","designation":"Tech.Helper","email":"vg@sit.ac.in","mobile":"9844169137"},{"id":447,"name":"Mr.Yogeesh D S","department":"Sports","designation":"P.E.D","email":"yogeeshds@sit.ac.in","mobile":"9740306116"},{"id":448,"name":"Mr.Bhojaraju G","department":"Telecommunication","designation":"Instructor","email":"gbhojaraju@sit.ac.in","mobile":"9886987549"},{"id":449,"name":"Dr.Chandrashekar H M","department":"Telecommunication","designation":"Asst.Professor","email":"hmchandrashekar@sit.ac.in","mobile":"9964529852"},{"id":450,"name":"Dr.Chandrika T N","department":"Telecommunication","designation":"Associate Professor","email":"tnchandrika@sit.ac.in","mobile":"9880122944"},{"id":451,"name":"Mr.Dayanand B","department":"Telecommunication","designation":"Instructor","email":"dayanandb@sit.ac.in","mobile":"8970279121"},{"id":452,"name":"Ms.Kumuda D K","department":"Telecommunication","designation":"Asst.Professor","email":"kumuda@sit.ac.in","mobile":"9886330082"},{"id":453,"name":"Ms.Latha G","department":"Telecommunication","designation":"Operator","email":"lathag@sit.ac.in","mobile":"9964421514"},{"id":454,"name":"Dr.Mallikarjun B C","department":"Telecommunication","designation":"Associate Professor","email":"mallikarjun_bc@sit.ac.in","mobile":"9980680753"},{"id":455,"name":"Mr.Manjunatha R S","department":"Telecommunication","designation":"Tech.Helper","email":"manjunathars@sit.ac.in","mobile":"9742140092"},{"id":456,"name":"Mr.Mohankumar K A","department":"Telecommunication","designation":"Attender","email":"kamohan@sit.ac.in","mobile":"9844608569"},{"id":457,"name":"Dr.Narasimhamurthy K C","department":"Telecommunication","designation":"Professor","email":"kcnmurthy@sit.ac.in","mobile":"9620243260"},{"id":458,"name":"Mr.Naveenkumar M","department":"Telecommunication","designation":"Asst.Professor","email":"navinvcm@sit.ac.in","mobile":"9964389249"},{"id":459,"name":"Dr.Puneethkumar T R","department":"Telecommunication","designation":"Asst.Professor","email":"punithkumartr@sit.ac.in","mobile":"8904685033"},{"id":460,"name":"Mr.Rakesh M B","department":"Telecommunication","designation":"Asst.Professor","email":"mbrakesh@sit.ac.in","mobile":"9480794805"},{"id":461,"name":"Mr.Sathisha R N","department":"Telecommunication","designation":"Asst.Professor","email":"sathisharyan@sit.ac.in","mobile":"9738766635"},{"id":462,"name":"Ms.Suchitra V","department":"Telecommunication","designation":"Asst.Professor","email":"suchitrav@sit.ac.in","mobile":"8762530997"},{"id":463,"name":"Dr.Sujatha M N","department":"Telecommunication","designation":"Associate Professor","email":"mnsujatha@sit.ac.in","mobile":"9880145094"},{"id":464,"name":"Dr.Usha L","department":"Telecommunication","designation":"Asst.Professor","email":"ushal@sit.ac.in","mobile":"9886424946"},{"id":465,"name":"Mr.Vinuth N R","department":"Telecommunication","designation":"Mechanic","email":"vinuthnr@sit.ac.in","mobile":"9986632172"},{"id":466,"name":"Dr.Viswanath K","department":"Telecommunication","designation":"Professor","email":"vishwanath@sit.ac.in","mobile":"9481346724"},{"id":467,"name":"Mr.Balasubramanya G","department":"Training & Placement","designation":"Asst. Placement Officer","email":"balu@sit.ac.in","mobile":"9972343714"},{"id":468,"name":"Dr.Chowdari K K","department":"Training & Placement","designation":"Asst. Placement Officer","email":"chowdarikk@sit.ac.in","mobile":""},{"id":469,"name":"Mr.Prakash H K","department":"Training & Placement","designation":"Attender","email":"hkprakash@sit.ac.in","mobile":"9611151965"},{"id":470,"name":"Mr.Rajesh B R","department":"Training & Placement","designation":"Instructor","email":"brrajesh@sit.ac.in","mobile":"9481860339"},{"id":471,"name":"Mr.Suresh G V","department":"Training & Placement","designation":"Project Manager","email":"suresh_gv@sit.ac.in","mobile":"9845415189"},{"id":472,"name":"Dr.Joydeep Roy Choudhury","department":"Computer Science & Engg.","designation":"Professor of Practice","email":"iamjoydeep@gmail.com","mobile":" 99450 44016"}];
+
+let currentUser = null;
+let staffList   = JSON.parse(JSON.stringify(STAFF_DATA));
+
+// ── DOM ───────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const loginPage = $('loginPage');
+const app       = $('app');
+const loginErr  = $('loginErr');
+const grid      = $('grid');
+const searchInp = $('searchInp');
+const deptSel   = $('deptSel');
+const showCount = $('showCount');
+const totalCount= $('totalCount');
+const dirPage   = $('dirPage');
+const aboutPage = $('aboutPage');
+const navDir    = $('navDir');
+const navAbout  = $('navAbout');
+const userBadge = $('userBadge');
+
+// ── LOGIN ─────────────────────────────────────────────────────────
+$('loginForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const phone = $('phoneInput').value.trim().replace(/\D/g,'');
+  const user  = STAFF_DATA.find(s => s.mobile && s.mobile.trim().replace(/\D/g,'') === phone);
+  if (user) {
+    currentUser = user;
+    loginErr.classList.remove('show');
+    loginPage.style.display = 'none';
+    app.classList.add('visible');
+    const first = user.name.replace(/^(Mr\.|Ms\.|Dr\.|Mrs\.)\s*/i,'').split(' ')[0];
+    userBadge.textContent = '👤 ' + first;
+    loadLocalData();
+    buildDepts();
+    doFilter();
+    searchInp.addEventListener('input', doFilter);
+    deptSel.addEventListener('change', doFilter);
+  } else {
+    loginErr.classList.add('show');
+    $('phoneInput').select();
+  }
+});
+
+function doLogout() {
+  currentUser = null;
+  app.classList.remove('visible');
+  loginPage.style.display = '';
+  $('phoneInput').value = '';
+  loginErr.classList.remove('show');
+}
+
+// ── LOCAL STORAGE ─────────────────────────────────────────────────
+function loadLocalData() {
+  const saved = localStorage.getItem('sit_staff_v2');
+  staffList = saved ? JSON.parse(saved) : JSON.parse(JSON.stringify(STAFF_DATA));
+}
+function saveLocalData() {
+  localStorage.setItem('sit_staff_v2', JSON.stringify(staffList));
+}
+
+// ── DEPARTMENTS ───────────────────────────────────────────────────
+function buildDepts() {
+  const depts = [...new Set(staffList.map(s => s.department))].sort();
+  deptSel.innerHTML = '<option value="">All Departments</option>';
+  depts.forEach(d => {
+    const o = document.createElement('option');
+    o.value = o.textContent = d;
+    deptSel.appendChild(o);
+  });
+}
+
+// ── FILTER ────────────────────────────────────────────────────────
+function doFilter() {
+  const q = searchInp.value.toLowerCase();
+  const d = deptSel.value;
+  const result = staffList.filter(s =>
+    (!d || s.department === d) &&
+    (!q || s.name.toLowerCase().includes(q) ||
+           s.designation.toLowerCase().includes(q) ||
+           s.department.toLowerCase().includes(q))
+  );
+  showCount.textContent  = result.length;
+  totalCount.textContent = staffList.length;
+  renderCards(result);
+}
+
+// ── INITIALS ──────────────────────────────────────────────────────
+function getInitials(name) {
+  return name.replace(/^(Mr\.|Ms\.|Dr\.|Mrs\.)\s*/i,'')
+    .split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2);
+}
+
+// ── RENDER ────────────────────────────────────────────────────────
+function renderCards(list) {
+  if (!list.length) {
+    grid.innerHTML = `<div class="empty">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+      </svg><p>No staff found</p></div>`;
+    return;
+  }
+  grid.innerHTML = list.map(makeCard).join('');
+}
+
+function makeCard(s) {
+  const ini   = getInitials(s.name);
+  const hasMob= s.mobile && s.mobile.trim() !== '';
+  const hasEm = s.email  && s.email !== 'dummy@sit.ac.in' && s.email.trim() !== '';
+  const mob   = hasMob ? s.mobile.trim() : '';
+  const edit  = canEdit(currentUser, s);
+
+  return `<div class="card">
+    <div class="card-head">
+      <div class="av">${ini}</div>
+      <button class="edit-btn" onclick="openEdit(${s.id})" ${edit ? '' : 'disabled'}>✏️ Edit</button>
+    </div>
+    <div class="c-name">${s.name}</div>
+    <div class="c-desig">${s.designation}</div>
+    <div class="c-dept">${s.department}</div>
+    <div class="c-info">
+      <div class="c-row ${hasEm?'has':''}">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+        ${hasEm ? `<a href="mailto:${s.email}">${s.email}</a>` : 'No email'}
+      </div>
+      <div class="c-row ${hasMob?'has':''}">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.466.254.917.4 1.36a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.443.146.894.28 1.36.4A2 2 0 0 1 22 16.92z"/></svg>
+        ${hasMob ? `<a href="tel:${mob}">${mob}</a>` : 'No mobile'}
+      </div>
+    </div>
+    <div class="c-acts">
+      <button class="aib call" onclick="location.href='tel:${mob}'" ${!hasMob?'disabled':''} title="Call">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.466.254.917.4 1.36a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.443.146.894.28 1.36.4A2 2 0 0 1 22 16.92z"/></svg>
+      </button>
+      <button class="aib wa" onclick="window.open('https://wa.me/91${mob.replace(/\D/g,'')}','_blank')" ${!hasMob?'disabled':''} title="WhatsApp">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+      </button>
+      <button class="aib mail" onclick="location.href='mailto:${s.email}'" ${!hasEm?'disabled':''} title="Email">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+      </button>
+      <button class="aib share" onclick="doShare(${s.id})" title="Share">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" x2="15.42" y1="13.51" y2="17.49"/><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"/></svg>
+      </button>
+    </div>
+  </div>`;
+}
+
+// ── EDIT MODAL ────────────────────────────────────────────────────
+function openEdit(id) {
+  const s = staffList.find(x => x.id === id);
+  if (!s || !canEdit(currentUser, s)) return;
+  const opts = DESIG_LIST.map(d =>
+    `<option value="${d}" ${s.designation===d?'selected':''}>${d}</option>`
+  ).join('');
+  const m = document.createElement('div');
+  m.className = 'modal';
+  m.id = 'editModal';
+  m.innerHTML = `
+    <div class="modal-box">
+      <div class="modal-hd">
+        <h3>Edit Contact</h3>
+        <button class="modal-x" onclick="closeEdit()">×</button>
+      </div>
+      <form onsubmit="saveEdit(event,${id})">
+        <div class="mfield"><label>Name</label><input id="eN" value="${s.name.replace(/"/g,'&quot;')}" required/></div>
+        <div class="mfield"><label>Email</label><input type="email" id="eE" value="${(s.email||'').replace(/"/g,'&quot;')}"/></div>
+        <div class="mfield"><label>Mobile</label><input type="tel" id="eM" value="${(s.mobile||'').trim()}"/></div>
+        <div class="mfield"><label>Designation</label><select id="eD" required>${opts}</select></div>
+        <div class="mfield"><label>Department</label><input id="eDp" value="${s.department.replace(/"/g,'&quot;')}" required/></div>
+        <div class="m-btns">
+          <button type="button" class="mbtn-c" onclick="closeEdit()">Cancel</button>
+          <button type="submit" class="mbtn-s">Save Changes</button>
+        </div>
+      </form>
+    </div>`;
+  document.body.appendChild(m);
+  requestAnimationFrame(() => m.classList.add('open'));
+  m.addEventListener('click', e => { if (e.target === m) closeEdit(); });
+}
+
+function closeEdit() {
+  const m = $('editModal');
+  if (m) { m.classList.remove('open'); setTimeout(() => m.remove(), 250); }
+}
+
+function saveEdit(e, id) {
+  e.preventDefault();
+  const idx = staffList.findIndex(x => x.id === id);
+  if (idx < 0) return;
+  staffList[idx] = { ...staffList[idx],
+    name:        $('eN').value,
+    email:       $('eE').value,
+    mobile:      $('eM').value.trim(),
+    designation: $('eD').value,
+    department:  $('eDp').value
+  };
+  saveLocalData();
+  buildDepts();
+  closeEdit();
+  doFilter();
+  showToast('Contact updated!');
+}
+
+// ── SHARE ─────────────────────────────────────────────────────────
+function doShare(id) {
+  const s = staffList.find(x => x.id === id);
+  if (!s) return;
+  const txt = `${s.name}\n${s.designation} – ${s.department}\nMobile: ${s.mobile||'N/A'}\nEmail: ${s.email||'N/A'}`;
+  if (navigator.share) {
+    navigator.share({ title: s.name, text: txt }).catch(() => {});
+  } else {
+    navigator.clipboard.writeText(txt).then(() => showToast('Copied to clipboard!')).catch(() => {});
+  }
+}
+
+// ── TOAST ─────────────────────────────────────────────────────────
+function showToast(msg) {
+  document.querySelectorAll('.toast').forEach(t => t.remove());
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  requestAnimationFrame(() => t.classList.add('show'));
+  setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 300); }, 2800);
+}
+
+// ── NAVIGATION ────────────────────────────────────────────────────
+navDir.onclick = () => {
+  dirPage.classList.remove('hidden');
+  aboutPage.classList.add('hidden');
+  navDir.className   = 'nbtn nbtn-on';
+  navAbout.className = 'nbtn nbtn-off';
+};
+navAbout.onclick = () => {
+  aboutPage.classList.remove('hidden');
+  dirPage.classList.add('hidden');
+  navAbout.className = 'nbtn nbtn-on';
+  navDir.className   = 'nbtn nbtn-off';
+};
+</script>
+</body>
+</html>
